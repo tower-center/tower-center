@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "725750656943",
+    "project_id": "clearsky-95c39",
+    "storage_bucket": "clearsky-95c39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:725750656943:android:639b0615dfbe764a9b895a",
+        "android_client_info": {
+          "package_name": "com.clearsky.clearsky"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "725750656943-s6v9qldrrg2ircjo017vsn3d0fo2pl8c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHr2T1LFcTL5egplW6cTMXsgnXEpZXomc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "725750656943-s6v9qldrrg2ircjo017vsn3d0fo2pl8c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "725750656943-d9qfu3gprtheqe0umndlhsfvfis8eb1g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clearsky.clearsky"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:725750656943:android:8812c7aee3f983f89b895a",
+        "android_client_info": {
+          "package_name": "com.example.tower_center"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "725750656943-s6v9qldrrg2ircjo017vsn3d0fo2pl8c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHr2T1LFcTL5egplW6cTMXsgnXEpZXomc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "725750656943-s6v9qldrrg2ircjo017vsn3d0fo2pl8c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "725750656943-d9qfu3gprtheqe0umndlhsfvfis8eb1g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clearsky.clearsky"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

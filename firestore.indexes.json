@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "action_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "droneSn", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "system_dictionaries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
