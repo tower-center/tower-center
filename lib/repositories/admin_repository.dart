@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/aircraft_model.dart';
 import '../models/drone_operator.dart';
 import '../models/system_dictionary.dart';
+import '../models/accessory_def.dart';
 
 /// 後台基礎資料管理 (機型、空拍手、字典選項) - Firestore 資料庫存取層
 class AdminRepository {
@@ -166,5 +167,50 @@ class AdminRepository {
   /// 永久刪除字典選項
   Future<void> deleteSystemDictionary(String documentId) async {
     await _firestore.collection('system_dictionaries').doc(documentId).delete();
+  }
+
+  // ==========================================
+  // 5. 配件定義 (AccessoryDef) CRUD
+  // ==========================================
+
+  Stream<List<AccessoryDef>> getAccessoryDefsStream() {
+    return _firestore
+        .collection('accessory_defs')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AccessoryDef.fromJson(doc.data())).toList();
+    });
+  }
+
+  Stream<List<AccessoryDef>> getActiveAccessoryDefsStream(String aircraftModelName) {
+    return _firestore
+        .collection('accessory_defs')
+        .where('aircraftModelName', isEqualTo: aircraftModelName)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) => AccessoryDef.fromJson(doc.data())).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Future<void> addAccessoryDef(AccessoryDef accessoryDef) async {
+    await _firestore
+        .collection('accessory_defs')
+        .doc(accessoryDef.documentId)
+        .set(accessoryDef.toJson());
+  }
+
+  Future<void> updateAccessoryDef(AccessoryDef accessoryDef) async {
+    await _firestore
+        .collection('accessory_defs')
+        .doc(accessoryDef.documentId)
+        .update(accessoryDef.toJson());
+  }
+
+  Future<void> deleteAccessoryDef(String documentId) async {
+    await _firestore.collection('accessory_defs').doc(documentId).delete();
   }
 }

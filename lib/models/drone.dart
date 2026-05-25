@@ -13,11 +13,11 @@ abstract class Drone with _$Drone {
     /// 出廠機型
     required String modelType,
     
-    /// 目前戰術編號
-    required String currentName,
+    /// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+    String? currentPackageId,
     
-    /// 目前保管人
-    required String currentKeeper,
+    /// 機身狀態 (如 正常、維修中、已報廢/遺失)
+    @Default('正常') String status,
     
     /// 保險/註冊到期日
     DateTime? insuranceExpiry,

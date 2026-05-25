@@ -16,6 +16,9 @@ abstract class ActionLog with _$ActionLog {
     /// 事件類型 (例如：crash, repair, battery_transfer, health_check)
     required String eventType,
     
+    /// 關聯套裝 ID
+    String? packageId,
+    
     /// 關聯機身序號
     String? droneSn,
     

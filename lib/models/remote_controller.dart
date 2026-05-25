@@ -13,11 +13,11 @@ abstract class RemoteController with _$RemoteController {
     /// 遙控器類型
     required String rcType,
     
-    /// 目前配對機身序號
-    String? currentPairedDroneSn,
+    /// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+    String? currentPackageId,
     
-    /// 目前保管人
-    required String currentKeeper,
+    /// 遙控器狀態 (如 正常、維修中、已報廢/遺失)
+    @Default('正常') String status,
   }) = _RemoteController;
 
   factory RemoteController.fromJson(Map<String, dynamic> json) => _$RemoteControllerFromJson(json);

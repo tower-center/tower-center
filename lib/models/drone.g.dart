@@ -9,8 +9,8 @@ part of 'drone.dart';
 _Drone _$DroneFromJson(Map<String, dynamic> json) => _Drone(
   documentId: json['documentId'] as String,
   modelType: json['modelType'] as String,
-  currentName: json['currentName'] as String,
-  currentKeeper: json['currentKeeper'] as String,
+  currentPackageId: json['currentPackageId'] as String?,
+  status: json['status'] as String? ?? '正常',
   insuranceExpiry: json['insuranceExpiry'] == null
       ? null
       : DateTime.parse(json['insuranceExpiry'] as String),
@@ -19,7 +19,7 @@ _Drone _$DroneFromJson(Map<String, dynamic> json) => _Drone(
 Map<String, dynamic> _$DroneToJson(_Drone instance) => <String, dynamic>{
   'documentId': instance.documentId,
   'modelType': instance.modelType,
-  'currentName': instance.currentName,
-  'currentKeeper': instance.currentKeeper,
+  'currentPackageId': instance.currentPackageId,
+  'status': instance.status,
   'insuranceExpiry': instance.insuranceExpiry?.toIso8601String(),
 };

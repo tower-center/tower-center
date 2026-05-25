@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/drone.dart';
+import '../models/drone_package.dart';
 import '../models/battery.dart';
 import '../models/action_log.dart';
 import '../repositories/fleet_repository.dart';
 import '../repositories/admin_repository.dart';
-import 'add_drone_dialog.dart';
-import 'drone_detail_screen.dart';
+import 'add_package_dialog.dart';
+import 'register_battery_dialog.dart';
+import 'package_detail_screen.dart';
 import 'admin/admin_management_screen.dart';
 import '../version.dart';
 
@@ -44,9 +45,9 @@ class _HomePageState extends State<HomePage> {
                   labelType: NavigationRailLabelType.all,
                   destinations: const [
                     NavigationRailDestination(
-                      icon: Icon(Icons.flight_takeoff_outlined),
-                      selectedIcon: Icon(Icons.flight_takeoff),
-                      label: Text('機隊總表'),
+                      icon: Icon(Icons.inventory_2_outlined),
+                      selectedIcon: Icon(Icons.inventory_2),
+                      label: Text('套裝總表'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.battery_charging_full_outlined),
@@ -105,9 +106,9 @@ class _HomePageState extends State<HomePage> {
                   },
                   destinations: const [
                     NavigationDestination(
-                      icon: Icon(Icons.flight_takeoff_outlined),
-                      selectedIcon: Icon(Icons.flight_takeoff),
-                      label: '機隊',
+                      icon: Icon(Icons.inventory_2_outlined),
+                      selectedIcon: Icon(Icons.inventory_2),
+                      label: '套裝',
                     ),
                     NavigationDestination(
                       icon: Icon(Icons.battery_charging_full_outlined),
@@ -127,30 +128,45 @@ class _HomePageState extends State<HomePage> {
                   ],
                 )
               : null,
-          // 僅在機隊總表分頁顯示登錄按鈕
-          floatingActionButton: _selectedIndex == 0
-              ? FloatingActionButton.extended(
-                  onPressed: () async {
-                    await showDialog<Drone>(
-                      context: context,
-                      builder: (context) => AddDroneDialog(repository: _repository),
-                    );
-                    // 因為使用 StreamBuilder，不用手動 setState 加入陣列
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('登錄新母艦'),
-                )
-              : null,
+          // 根據分頁顯示不同的 FAB
+          floatingActionButton: _buildFloatingActionButton(),
         );
       },
     );
+  }
+
+  Widget? _buildFloatingActionButton() {
+    if (_selectedIndex == 0) {
+      return FloatingActionButton.extended(
+        onPressed: () async {
+          await showDialog<DronePackage>(
+            context: context,
+            builder: (context) => AddPackageDialog(repository: _repository),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('登錄新套裝'),
+      );
+    } else if (_selectedIndex == 1) {
+      return FloatingActionButton.extended(
+        onPressed: () async {
+          await showDialog(
+            context: context,
+            builder: (context) => RegisterBatteryDialog(repository: _repository),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('登錄新電池'),
+      );
+    }
+    return null;
   }
 
   /// 根據當前選擇的分頁，渲染對應的 Sliver 內容
   Widget _buildSliverContent(bool isMobile) {
     switch (_selectedIndex) {
       case 0:
-        return _buildDroneList(isMobile);
+        return _buildPackageList(isMobile);
       case 1:
         return _buildBatteryList(isMobile);
       case 2:
@@ -163,11 +179,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ==========================================
-  // 【機隊總表】Sliver 渲染邏輯
+  // 【套裝總表】Sliver 渲染邏輯
   // ==========================================
-  Widget _buildDroneList(bool isMobile) {
-    return StreamBuilder<List<Drone>>(
-      stream: _repository.getDronesStream(),
+  Widget _buildPackageList(bool isMobile) {
+    return StreamBuilder<List<DronePackage>>(
+      stream: _repository.getPackagesStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
@@ -175,9 +191,9 @@ class _HomePageState extends State<HomePage> {
         if (snapshot.hasError) {
           return SliverFillRemaining(child: Center(child: Text('載入失敗: ${snapshot.error}')));
         }
-        final drones = snapshot.data ?? [];
-        if (drones.isEmpty) {
-          return const SliverFillRemaining(child: Center(child: Text('尚無機隊資料，請點擊右下角新增')));
+        final packages = snapshot.data ?? [];
+        if (packages.isEmpty) {
+          return const SliverFillRemaining(child: Center(child: Text('尚無套裝資料，請點擊右下角新增')));
         }
 
         if (isMobile) {
@@ -188,10 +204,10 @@ class _HomePageState extends State<HomePage> {
                 (context, index) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildDroneCard(drones[index]),
+                    child: _buildPackageCard(packages[index]),
                   );
                 },
-                childCount: drones.length,
+                childCount: packages.length,
               ),
             ),
           );
@@ -207,9 +223,9 @@ class _HomePageState extends State<HomePage> {
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  return _buildDroneCard(drones[index]);
+                  return _buildPackageCard(packages[index]);
                 },
-                childCount: drones.length,
+                childCount: packages.length,
               ),
             ),
           );
@@ -218,8 +234,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// 獨立的 Drone Card，使用 Material 3 Filled Card
-  Widget _buildDroneCard(Drone drone) {
+  /// 獨立的 Package Card，使用 Material 3 Filled Card
+  Widget _buildPackageCard(DronePackage package) {
     return Card.filled(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -229,25 +245,14 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(16),
         onTap: () async {
           // 點擊卡片跳轉至 M3 配置細節面板
-          final bool? isDeleted = await Navigator.of(context).push<bool>(
+          await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => DroneDetailScreen(
-                drone: drone,
+              builder: (context) => PackageDetailScreen(
+                package: package,
                 repository: _repository,
               ),
             ),
           );
-          
-          // 若已刪除，會彈出提示，不需手動修改本地陣列，Stream 會自動更新畫面
-          if (isDeleted == true && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${drone.currentName} 已成功報廢/刪除'),
-                backgroundColor: Colors.red.shade700,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -260,7 +265,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Expanded(
                     child: Text(
-                      drone.currentName,
+                      package.tacticalName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -276,7 +281,7 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      drone.modelType,
+                      package.modelType,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
@@ -287,11 +292,11 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.qr_code_scanner, size: 16, color: Theme.of(context).colorScheme.outline),
+                  Icon(Icons.inventory_2, size: 16, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      drone.documentId,
+                      '設備: ${package.currentDroneSn != null ? 1 : 0} 飛機, ${package.currentRcSn != null ? 1 : 0} 遙控',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -307,7 +312,7 @@ class _HomePageState extends State<HomePage> {
                   Icon(Icons.person_outline, size: 16, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 4),
                   Text(
-                    drone.currentKeeper,
+                    package.currentKeeper,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -390,10 +395,10 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                           ),
-                          if (battery.currentDroneSn != null)
+                          if (battery.currentPackageId != null)
                             Chip(
-                              label: Text(battery.currentDroneSn!),
-                              avatar: const Icon(Icons.flight, size: 16),
+                              label: const Text('已在套裝內'),
+                              avatar: const Icon(Icons.inventory_2, size: 16),
                             ),
                         ],
                       ),

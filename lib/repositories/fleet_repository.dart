@@ -3,6 +3,7 @@ import '../models/drone.dart';
 import '../models/action_log.dart';
 import '../models/battery.dart';
 import '../models/remote_controller.dart';
+import '../models/drone_package.dart';
 
 /// 機隊管理系統 - Firestore 資料庫存取層示範
 class FleetRepository {
@@ -53,40 +54,79 @@ class FleetRepository {
   }
 
   // ==========================================
+  // DronePackage (套裝) CRUD
+  // ==========================================
+
+  Future<void> addPackage(DronePackage package) async {
+    await _firestore
+        .collection('drone_packages')
+        .doc(package.documentId)
+        .set(package.toJson());
+  }
+
+  Future<DronePackage?> getPackage(String documentId) async {
+    final doc = await _firestore.collection('drone_packages').doc(documentId).get();
+    if (doc.exists && doc.data() != null) {
+      return DronePackage.fromJson(doc.data()!);
+    }
+    return null;
+  }
+
+  Future<void> updatePackage(DronePackage package) async {
+    await _firestore
+        .collection('drone_packages')
+        .doc(package.documentId)
+        .update(package.toJson());
+  }
+
+  Future<void> deletePackage(String documentId) async {
+    await _firestore.collection('drone_packages').doc(documentId).delete();
+  }
+
+  Stream<List<DronePackage>> getPackagesStream() {
+    return _firestore.collection('drone_packages').orderBy('createdAt', descending: true).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => DronePackage.fromJson(doc.data())).toList();
+    });
+  }
+
+  // ==========================================
   // RemoteController (遙控器) 特殊操作
   // ==========================================
 
-  /// 配對遙控器與機身
-  /// 若遙控器不存在則自動建立，並將 currentPairedDroneSn 指向當前機身
+  /// 配對遙控器與套裝
+  /// 若遙控器不存在則自動建立，並將 currentPackageId 指向當前套裝
   Future<void> pairRemoteController({
     required String rcSn,
-    required String droneSn,
+    required String packageId,
   }) async {
     final docRef = _firestore.collection('remote_controllers').doc(rcSn);
     final doc = await docRef.get();
 
     if (doc.exists) {
-      // 遙控器已存在，更新配對機身欄位
       await docRef.update({
-        'currentPairedDroneSn': droneSn,
+        'currentPackageId': packageId,
       });
     } else {
-      // 遙控器不存在，以防呆機制預設屬性建立新實體
       final newRc = RemoteController(
         documentId: rcSn,
         rcType: '標準版遙控器',
-        currentKeeper: '待分配保管人',
-        currentPairedDroneSn: droneSn,
+        currentPackageId: packageId,
       );
       await docRef.set(newRc.toJson());
     }
+  }
+
+  /// 解除遙控器綁定
+  Future<void> unpairRemoteController(String rcSn) async {
+    await _firestore.collection('remote_controllers').doc(rcSn).update({
+      'currentPackageId': FieldValue.delete(),
+    });
   }
 
   // ==========================================
   // Battery (電池) 批量處理
   // ==========================================
 
-  /// 新增單筆電池實體
   Future<void> addBattery(Battery battery) async {
     await _firestore
         .collection('batteries')
@@ -94,7 +134,6 @@ class FleetRepository {
         .set(battery.toJson());
   }
 
-  /// 更新電池實體 (修改 TagName 或 SN 等)
   Future<void> updateBattery(Battery battery) async {
     await _firestore
         .collection('batteries')
@@ -102,18 +141,24 @@ class FleetRepository {
         .update(battery.toJson());
   }
 
-  /// 監聽所有電池清單即時變更 (Stream)
   Stream<List<Battery>> getBatteriesStream() {
     return _firestore.collection('batteries').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => Battery.fromJson(doc.data())).toList();
     });
   }
 
-  /// 監聽特定機身目前掛載的電池清單 (Stream)
-  Stream<List<Battery>> getDroneBatteriesStream(String droneSn) {
+  Future<List<Battery>> getUnassignedBatteries() async {
+    final snapshot = await _firestore
+        .collection('batteries')
+        .where('currentPackageId', isNull: true)
+        .get();
+    return snapshot.docs.map((doc) => Battery.fromJson(doc.data())).toList();
+  }
+
+  Stream<List<Battery>> getPackageBatteriesStream(String packageId) {
     return _firestore
         .collection('batteries')
-        .where('currentDroneSn', isEqualTo: droneSn)
+        .where('currentPackageId', isEqualTo: packageId)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Battery.fromJson(doc.data())).toList();
@@ -124,7 +169,6 @@ class FleetRepository {
   // ActionLog (動態時間軸) 特殊查詢示範
   // ==========================================
 
-  /// 監聽所有事件紀錄即時變更 (Stream)
   Stream<List<ActionLog>> getAllActionLogsStream() {
     return _firestore
         .collection('action_logs')
@@ -135,12 +179,10 @@ class FleetRepository {
     });
   }
 
-  /// 新增事件紀錄 (符合 addDroneActionLog 規範)
   Future<void> addDroneActionLog(ActionLog log) async {
     await addActionLog(log);
   }
 
-  /// 新增事件紀錄
   Future<void> addActionLog(ActionLog log) async {
     await _firestore
         .collection('action_logs')
@@ -148,12 +190,11 @@ class FleetRepository {
         .set(log.toJson());
   }
 
-  /// 查詢特定機身的軌跡紀錄 (依時間排序)
-  /// 示範：如何查詢 ActionLog 裡的特定機身軌跡
-  Future<List<ActionLog>> getDroneActionLogs(String droneSn) async {
+  /// 查詢特定套裝的軌跡紀錄 (依時間排序)
+  Future<List<ActionLog>> getPackageActionLogs(String packageId) async {
     final snapshot = await _firestore
         .collection('action_logs')
-        .where('droneSn', isEqualTo: droneSn)
+        .where('packageId', isEqualTo: packageId)
         .orderBy('timestamp', descending: true)
         .get();
 

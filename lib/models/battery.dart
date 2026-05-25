@@ -33,8 +33,8 @@ abstract class Battery with _$Battery {
     /// 膨脹狀態 / 健康狀態
     required String healthStatus,
     
-    /// 目前配置機身序號
-    String? currentDroneSn,
+    /// 目前配置套裝 ID (可為 null，代表在庫存中)
+    String? currentPackageId,
   }) = _Battery;
 
   factory Battery.fromJson(Map<String, dynamic> json) => _$BatteryFromJson(json);

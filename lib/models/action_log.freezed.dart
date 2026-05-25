@@ -18,7 +18,8 @@ mixin _$ActionLog {
 /// 事件 UUID (作為 Document ID)
  String get documentId;/// 發生時間
  DateTime get timestamp;/// 事件類型 (例如：crash, repair, battery_transfer, health_check)
- String get eventType;/// 關聯機身序號
+ String get eventType;/// 關聯套裝 ID
+ String? get packageId;/// 關聯機身序號
  String? get droneSn;/// 關聯遙控器序號
  String? get rcSn;/// 關聯電池序號
  String? get batterySn;/// 事件詳述
@@ -37,16 +38,16 @@ $ActionLogCopyWith<ActionLog> get copyWith => _$ActionLogCopyWithImpl<ActionLog>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActionLog&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.droneSn, droneSn) || other.droneSn == droneSn)&&(identical(other.rcSn, rcSn) || other.rcSn == rcSn)&&(identical(other.batterySn, batterySn) || other.batterySn == batterySn)&&(identical(other.description, description) || other.description == description)&&(identical(other.cost, cost) || other.cost == cost)&&const DeepCollectionEquality().equals(other.aiTags, aiTags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActionLog&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.packageId, packageId) || other.packageId == packageId)&&(identical(other.droneSn, droneSn) || other.droneSn == droneSn)&&(identical(other.rcSn, rcSn) || other.rcSn == rcSn)&&(identical(other.batterySn, batterySn) || other.batterySn == batterySn)&&(identical(other.description, description) || other.description == description)&&(identical(other.cost, cost) || other.cost == cost)&&const DeepCollectionEquality().equals(other.aiTags, aiTags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,timestamp,eventType,droneSn,rcSn,batterySn,description,cost,const DeepCollectionEquality().hash(aiTags));
+int get hashCode => Object.hash(runtimeType,documentId,timestamp,eventType,packageId,droneSn,rcSn,batterySn,description,cost,const DeepCollectionEquality().hash(aiTags));
 
 @override
 String toString() {
-  return 'ActionLog(documentId: $documentId, timestamp: $timestamp, eventType: $eventType, droneSn: $droneSn, rcSn: $rcSn, batterySn: $batterySn, description: $description, cost: $cost, aiTags: $aiTags)';
+  return 'ActionLog(documentId: $documentId, timestamp: $timestamp, eventType: $eventType, packageId: $packageId, droneSn: $droneSn, rcSn: $rcSn, batterySn: $batterySn, description: $description, cost: $cost, aiTags: $aiTags)';
 }
 
 
@@ -57,7 +58,7 @@ abstract mixin class $ActionLogCopyWith<$Res>  {
   factory $ActionLogCopyWith(ActionLog value, $Res Function(ActionLog) _then) = _$ActionLogCopyWithImpl;
 @useResult
 $Res call({
- String documentId, DateTime timestamp, String eventType, String? droneSn, String? rcSn, String? batterySn, String description, double cost, List<String> aiTags
+ String documentId, DateTime timestamp, String eventType, String? packageId, String? droneSn, String? rcSn, String? batterySn, String description, double cost, List<String> aiTags
 });
 
 
@@ -74,12 +75,13 @@ class _$ActionLogCopyWithImpl<$Res>
 
 /// Create a copy of ActionLog
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? timestamp = null,Object? eventType = null,Object? droneSn = freezed,Object? rcSn = freezed,Object? batterySn = freezed,Object? description = null,Object? cost = null,Object? aiTags = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? timestamp = null,Object? eventType = null,Object? packageId = freezed,Object? droneSn = freezed,Object? rcSn = freezed,Object? batterySn = freezed,Object? description = null,Object? cost = null,Object? aiTags = null,}) {
   return _then(_self.copyWith(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
 as DateTime,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String,droneSn: freezed == droneSn ? _self.droneSn : droneSn // ignore: cast_nullable_to_non_nullable
+as String,packageId: freezed == packageId ? _self.packageId : packageId // ignore: cast_nullable_to_non_nullable
+as String?,droneSn: freezed == droneSn ? _self.droneSn : droneSn // ignore: cast_nullable_to_non_nullable
 as String?,rcSn: freezed == rcSn ? _self.rcSn : rcSn // ignore: cast_nullable_to_non_nullable
 as String?,batterySn: freezed == batterySn ? _self.batterySn : batterySn // ignore: cast_nullable_to_non_nullable
 as String?,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -170,10 +172,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  DateTime timestamp,  String eventType,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  DateTime timestamp,  String eventType,  String? packageId,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ActionLog() when $default != null:
-return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
+return $default(_that.documentId,_that.timestamp,_that.eventType,_that.packageId,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
   return orElse();
 
 }
@@ -191,10 +193,10 @@ return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  DateTime timestamp,  String eventType,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  DateTime timestamp,  String eventType,  String? packageId,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)  $default,) {final _that = this;
 switch (_that) {
 case _ActionLog():
-return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
+return $default(_that.documentId,_that.timestamp,_that.eventType,_that.packageId,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +213,10 @@ return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  DateTime timestamp,  String eventType,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  DateTime timestamp,  String eventType,  String? packageId,  String? droneSn,  String? rcSn,  String? batterySn,  String description,  double cost,  List<String> aiTags)?  $default,) {final _that = this;
 switch (_that) {
 case _ActionLog() when $default != null:
-return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
+return $default(_that.documentId,_that.timestamp,_that.eventType,_that.packageId,_that.droneSn,_that.rcSn,_that.batterySn,_that.description,_that.cost,_that.aiTags);case _:
   return null;
 
 }
@@ -226,7 +228,7 @@ return $default(_that.documentId,_that.timestamp,_that.eventType,_that.droneSn,_
 @JsonSerializable()
 
 class _ActionLog implements ActionLog {
-  const _ActionLog({required this.documentId, required this.timestamp, required this.eventType, this.droneSn, this.rcSn, this.batterySn, required this.description, this.cost = 0.0, final  List<String> aiTags = const []}): _aiTags = aiTags;
+  const _ActionLog({required this.documentId, required this.timestamp, required this.eventType, this.packageId, this.droneSn, this.rcSn, this.batterySn, required this.description, this.cost = 0.0, final  List<String> aiTags = const []}): _aiTags = aiTags;
   factory _ActionLog.fromJson(Map<String, dynamic> json) => _$ActionLogFromJson(json);
 
 /// 事件 UUID (作為 Document ID)
@@ -235,6 +237,8 @@ class _ActionLog implements ActionLog {
 @override final  DateTime timestamp;
 /// 事件類型 (例如：crash, repair, battery_transfer, health_check)
 @override final  String eventType;
+/// 關聯套裝 ID
+@override final  String? packageId;
 /// 關聯機身序號
 @override final  String? droneSn;
 /// 關聯遙控器序號
@@ -268,16 +272,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActionLog&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.droneSn, droneSn) || other.droneSn == droneSn)&&(identical(other.rcSn, rcSn) || other.rcSn == rcSn)&&(identical(other.batterySn, batterySn) || other.batterySn == batterySn)&&(identical(other.description, description) || other.description == description)&&(identical(other.cost, cost) || other.cost == cost)&&const DeepCollectionEquality().equals(other._aiTags, _aiTags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActionLog&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.packageId, packageId) || other.packageId == packageId)&&(identical(other.droneSn, droneSn) || other.droneSn == droneSn)&&(identical(other.rcSn, rcSn) || other.rcSn == rcSn)&&(identical(other.batterySn, batterySn) || other.batterySn == batterySn)&&(identical(other.description, description) || other.description == description)&&(identical(other.cost, cost) || other.cost == cost)&&const DeepCollectionEquality().equals(other._aiTags, _aiTags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,timestamp,eventType,droneSn,rcSn,batterySn,description,cost,const DeepCollectionEquality().hash(_aiTags));
+int get hashCode => Object.hash(runtimeType,documentId,timestamp,eventType,packageId,droneSn,rcSn,batterySn,description,cost,const DeepCollectionEquality().hash(_aiTags));
 
 @override
 String toString() {
-  return 'ActionLog(documentId: $documentId, timestamp: $timestamp, eventType: $eventType, droneSn: $droneSn, rcSn: $rcSn, batterySn: $batterySn, description: $description, cost: $cost, aiTags: $aiTags)';
+  return 'ActionLog(documentId: $documentId, timestamp: $timestamp, eventType: $eventType, packageId: $packageId, droneSn: $droneSn, rcSn: $rcSn, batterySn: $batterySn, description: $description, cost: $cost, aiTags: $aiTags)';
 }
 
 
@@ -288,7 +292,7 @@ abstract mixin class _$ActionLogCopyWith<$Res> implements $ActionLogCopyWith<$Re
   factory _$ActionLogCopyWith(_ActionLog value, $Res Function(_ActionLog) _then) = __$ActionLogCopyWithImpl;
 @override @useResult
 $Res call({
- String documentId, DateTime timestamp, String eventType, String? droneSn, String? rcSn, String? batterySn, String description, double cost, List<String> aiTags
+ String documentId, DateTime timestamp, String eventType, String? packageId, String? droneSn, String? rcSn, String? batterySn, String description, double cost, List<String> aiTags
 });
 
 
@@ -305,12 +309,13 @@ class __$ActionLogCopyWithImpl<$Res>
 
 /// Create a copy of ActionLog
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? timestamp = null,Object? eventType = null,Object? droneSn = freezed,Object? rcSn = freezed,Object? batterySn = freezed,Object? description = null,Object? cost = null,Object? aiTags = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? timestamp = null,Object? eventType = null,Object? packageId = freezed,Object? droneSn = freezed,Object? rcSn = freezed,Object? batterySn = freezed,Object? description = null,Object? cost = null,Object? aiTags = null,}) {
   return _then(_ActionLog(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
 as DateTime,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String,droneSn: freezed == droneSn ? _self.droneSn : droneSn // ignore: cast_nullable_to_non_nullable
+as String,packageId: freezed == packageId ? _self.packageId : packageId // ignore: cast_nullable_to_non_nullable
+as String?,droneSn: freezed == droneSn ? _self.droneSn : droneSn // ignore: cast_nullable_to_non_nullable
 as String?,rcSn: freezed == rcSn ? _self.rcSn : rcSn // ignore: cast_nullable_to_non_nullable
 as String?,batterySn: freezed == batterySn ? _self.batterySn : batterySn // ignore: cast_nullable_to_non_nullable
 as String?,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable

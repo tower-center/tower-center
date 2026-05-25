@@ -17,9 +17,9 @@ mixin _$Drone {
 
 /// 機身序號 (作為 Document ID)
  String get documentId;/// 出廠機型
- String get modelType;/// 目前戰術編號
- String get currentName;/// 目前保管人
- String get currentKeeper;/// 保險/註冊到期日
+ String get modelType;/// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+ String? get currentPackageId;/// 機身狀態 (如 正常、維修中、已報廢/遺失)
+ String get status;/// 保險/註冊到期日
  DateTime? get insuranceExpiry;
 /// Create a copy of Drone
 /// with the given fields replaced by the non-null parameter values.
@@ -33,16 +33,16 @@ $DroneCopyWith<Drone> get copyWith => _$DroneCopyWithImpl<Drone>(this as Drone, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Drone&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.modelType, modelType) || other.modelType == modelType)&&(identical(other.currentName, currentName) || other.currentName == currentName)&&(identical(other.currentKeeper, currentKeeper) || other.currentKeeper == currentKeeper)&&(identical(other.insuranceExpiry, insuranceExpiry) || other.insuranceExpiry == insuranceExpiry));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Drone&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.modelType, modelType) || other.modelType == modelType)&&(identical(other.currentPackageId, currentPackageId) || other.currentPackageId == currentPackageId)&&(identical(other.status, status) || other.status == status)&&(identical(other.insuranceExpiry, insuranceExpiry) || other.insuranceExpiry == insuranceExpiry));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,modelType,currentName,currentKeeper,insuranceExpiry);
+int get hashCode => Object.hash(runtimeType,documentId,modelType,currentPackageId,status,insuranceExpiry);
 
 @override
 String toString() {
-  return 'Drone(documentId: $documentId, modelType: $modelType, currentName: $currentName, currentKeeper: $currentKeeper, insuranceExpiry: $insuranceExpiry)';
+  return 'Drone(documentId: $documentId, modelType: $modelType, currentPackageId: $currentPackageId, status: $status, insuranceExpiry: $insuranceExpiry)';
 }
 
 
@@ -53,7 +53,7 @@ abstract mixin class $DroneCopyWith<$Res>  {
   factory $DroneCopyWith(Drone value, $Res Function(Drone) _then) = _$DroneCopyWithImpl;
 @useResult
 $Res call({
- String documentId, String modelType, String currentName, String currentKeeper, DateTime? insuranceExpiry
+ String documentId, String modelType, String? currentPackageId, String status, DateTime? insuranceExpiry
 });
 
 
@@ -70,12 +70,12 @@ class _$DroneCopyWithImpl<$Res>
 
 /// Create a copy of Drone
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? modelType = null,Object? currentName = null,Object? currentKeeper = null,Object? insuranceExpiry = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? modelType = null,Object? currentPackageId = freezed,Object? status = null,Object? insuranceExpiry = freezed,}) {
   return _then(_self.copyWith(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,modelType: null == modelType ? _self.modelType : modelType // ignore: cast_nullable_to_non_nullable
-as String,currentName: null == currentName ? _self.currentName : currentName // ignore: cast_nullable_to_non_nullable
-as String,currentKeeper: null == currentKeeper ? _self.currentKeeper : currentKeeper // ignore: cast_nullable_to_non_nullable
+as String,currentPackageId: freezed == currentPackageId ? _self.currentPackageId : currentPackageId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,insuranceExpiry: freezed == insuranceExpiry ? _self.insuranceExpiry : insuranceExpiry // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -162,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String modelType,  String currentName,  String currentKeeper,  DateTime? insuranceExpiry)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String modelType,  String? currentPackageId,  String status,  DateTime? insuranceExpiry)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Drone() when $default != null:
-return $default(_that.documentId,_that.modelType,_that.currentName,_that.currentKeeper,_that.insuranceExpiry);case _:
+return $default(_that.documentId,_that.modelType,_that.currentPackageId,_that.status,_that.insuranceExpiry);case _:
   return orElse();
 
 }
@@ -183,10 +183,10 @@ return $default(_that.documentId,_that.modelType,_that.currentName,_that.current
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String modelType,  String currentName,  String currentKeeper,  DateTime? insuranceExpiry)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String modelType,  String? currentPackageId,  String status,  DateTime? insuranceExpiry)  $default,) {final _that = this;
 switch (_that) {
 case _Drone():
-return $default(_that.documentId,_that.modelType,_that.currentName,_that.currentKeeper,_that.insuranceExpiry);case _:
+return $default(_that.documentId,_that.modelType,_that.currentPackageId,_that.status,_that.insuranceExpiry);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +203,10 @@ return $default(_that.documentId,_that.modelType,_that.currentName,_that.current
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String modelType,  String currentName,  String currentKeeper,  DateTime? insuranceExpiry)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String modelType,  String? currentPackageId,  String status,  DateTime? insuranceExpiry)?  $default,) {final _that = this;
 switch (_that) {
 case _Drone() when $default != null:
-return $default(_that.documentId,_that.modelType,_that.currentName,_that.currentKeeper,_that.insuranceExpiry);case _:
+return $default(_that.documentId,_that.modelType,_that.currentPackageId,_that.status,_that.insuranceExpiry);case _:
   return null;
 
 }
@@ -218,17 +218,17 @@ return $default(_that.documentId,_that.modelType,_that.currentName,_that.current
 @JsonSerializable()
 
 class _Drone implements Drone {
-  const _Drone({required this.documentId, required this.modelType, required this.currentName, required this.currentKeeper, this.insuranceExpiry});
+  const _Drone({required this.documentId, required this.modelType, this.currentPackageId, this.status = '正常', this.insuranceExpiry});
   factory _Drone.fromJson(Map<String, dynamic> json) => _$DroneFromJson(json);
 
 /// 機身序號 (作為 Document ID)
 @override final  String documentId;
 /// 出廠機型
 @override final  String modelType;
-/// 目前戰術編號
-@override final  String currentName;
-/// 目前保管人
-@override final  String currentKeeper;
+/// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+@override final  String? currentPackageId;
+/// 機身狀態 (如 正常、維修中、已報廢/遺失)
+@override@JsonKey() final  String status;
 /// 保險/註冊到期日
 @override final  DateTime? insuranceExpiry;
 
@@ -245,16 +245,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Drone&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.modelType, modelType) || other.modelType == modelType)&&(identical(other.currentName, currentName) || other.currentName == currentName)&&(identical(other.currentKeeper, currentKeeper) || other.currentKeeper == currentKeeper)&&(identical(other.insuranceExpiry, insuranceExpiry) || other.insuranceExpiry == insuranceExpiry));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Drone&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.modelType, modelType) || other.modelType == modelType)&&(identical(other.currentPackageId, currentPackageId) || other.currentPackageId == currentPackageId)&&(identical(other.status, status) || other.status == status)&&(identical(other.insuranceExpiry, insuranceExpiry) || other.insuranceExpiry == insuranceExpiry));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,modelType,currentName,currentKeeper,insuranceExpiry);
+int get hashCode => Object.hash(runtimeType,documentId,modelType,currentPackageId,status,insuranceExpiry);
 
 @override
 String toString() {
-  return 'Drone(documentId: $documentId, modelType: $modelType, currentName: $currentName, currentKeeper: $currentKeeper, insuranceExpiry: $insuranceExpiry)';
+  return 'Drone(documentId: $documentId, modelType: $modelType, currentPackageId: $currentPackageId, status: $status, insuranceExpiry: $insuranceExpiry)';
 }
 
 
@@ -265,7 +265,7 @@ abstract mixin class _$DroneCopyWith<$Res> implements $DroneCopyWith<$Res> {
   factory _$DroneCopyWith(_Drone value, $Res Function(_Drone) _then) = __$DroneCopyWithImpl;
 @override @useResult
 $Res call({
- String documentId, String modelType, String currentName, String currentKeeper, DateTime? insuranceExpiry
+ String documentId, String modelType, String? currentPackageId, String status, DateTime? insuranceExpiry
 });
 
 
@@ -282,12 +282,12 @@ class __$DroneCopyWithImpl<$Res>
 
 /// Create a copy of Drone
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? modelType = null,Object? currentName = null,Object? currentKeeper = null,Object? insuranceExpiry = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? modelType = null,Object? currentPackageId = freezed,Object? status = null,Object? insuranceExpiry = freezed,}) {
   return _then(_Drone(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,modelType: null == modelType ? _self.modelType : modelType // ignore: cast_nullable_to_non_nullable
-as String,currentName: null == currentName ? _self.currentName : currentName // ignore: cast_nullable_to_non_nullable
-as String,currentKeeper: null == currentKeeper ? _self.currentKeeper : currentKeeper // ignore: cast_nullable_to_non_nullable
+as String,currentPackageId: freezed == currentPackageId ? _self.currentPackageId : currentPackageId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,insuranceExpiry: freezed == insuranceExpiry ? _self.insuranceExpiry : insuranceExpiry // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

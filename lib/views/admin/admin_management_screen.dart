@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/accessory_def.dart';
 import '../../models/aircraft_model.dart';
 import '../../models/drone_operator.dart';
 import '../../models/system_dictionary.dart';
@@ -19,12 +20,12 @@ class AdminManagementScreen extends StatefulWidget {
 
 class _AdminManagementScreenState extends State<AdminManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final String _selectedDictCategory = 'tactical_name'; // 預設為戰術編號類別
+  String _selectedDictCategory = 'tactical_name'; // 預設為飛機編號類別
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -58,7 +59,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
             ),
             Tab(
               icon: Icon(Icons.menu_book_outlined),
-              text: '編號字典管理',
+              text: '名稱設定',
+            ),
+            Tab(
+              icon: Icon(Icons.category_outlined),
+              text: '配件定義',
             ),
           ],
         ),
@@ -69,6 +74,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           _buildAircraftModelTab(),
           _buildDroneOperatorTab(),
           _buildSystemDictionaryTab(),
+          _buildAccessoryDefTab(),
         ],
       ),
     );
@@ -897,33 +903,55 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   }
 
   // ==========================================
-  // 3. 【編號字典管理】分頁與對話框
+  // 3. 【名稱設定】分頁與對話框
   // ==========================================
 
   Widget _buildSystemDictionaryTab() {
+    final isTacticalName = _selectedDictCategory == 'tactical_name';
+    final categoryLabel = isTacticalName ? '飛機編號' : '電池型號';
+
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_dict_fab',
         onPressed: () => _showSystemDictionaryDialog(),
         icon: const Icon(Icons.add),
-        label: const Text('新增戰術編號'),
+        label: Text('新增$categoryLabel'),
       ),
       body: Column(
         children: [
-          // 頂部小提醒說明字典分類
+          // 頂部小提醒與分類切換
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            child: Row(
+            child: Column(
               children: [
-                Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    '此處管理的編號為前台登錄新母艦時使用的「戰術編號」下拉選項，最新建立之編號會優先顯示在選單最前方。',
-                    style: TextStyle(fontSize: 12, color: Colors.black87),
-                  ),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'tactical_name', label: Text('飛機編號設定')),
+                    ButtonSegment(value: 'battery_model', label: Text('電池型號設定')),
+                  ],
+                  selected: {_selectedDictCategory},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _selectedDictCategory = newSelection.first;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isTacticalName 
+                          ? '此處管理的編號為前台登錄新母艦時使用的「飛機編號」下拉選項，最新建立之編號會優先顯示在選單最前方。'
+                          : '此處管理的型號為前台登錄新電池時使用的「電池型號」下拉選項，最新建立之型號會優先顯示在選單最前方。',
+                        style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -954,12 +982,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       children: [
                         Icon(Icons.menu_book_outlined, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
-                        const Text('尚無任何戰術編號，請點擊下方按鈕新增', style: TextStyle(color: Colors.grey)),
+                        Text('尚無任何$categoryLabel，請點擊下方按鈕新增', style: const TextStyle(color: Colors.grey)),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed: () => _showSystemDictionaryDialog(),
                           icon: const Icon(Icons.add),
-                          label: const Text('新增戰術編號'),
+                          label: Text('新增$categoryLabel'),
                         ),
                       ],
                     ),
@@ -1030,7 +1058,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                         Text('確認永久刪除'),
                                       ],
                                     ),
-                                    content: Text('確定要永久刪除戰術編號「${dict.label}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
+                                    content: Text('確定要永久刪除$categoryLabel「${dict.label}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context, false),
@@ -1052,7 +1080,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                   await widget.repository.deleteSystemDictionary(dict.documentId);
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('戰術編號「${dict.label}」已永久刪除')),
+                                    SnackBar(content: Text('$categoryLabel「${dict.label}」已永久刪除')),
                                   );
                                 }
                               },
@@ -1079,6 +1107,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   }
 
   void _showSystemDictionaryDialog({SystemDictionary? dict}) {
+    final categoryLabel = _selectedDictCategory == 'tactical_name' ? '飛機編號' : '電池型號';
     final formKey = GlobalKey<FormState>();
     final labelController = TextEditingController(text: dict?.label);
     final valueController = TextEditingController(text: dict?.value);
@@ -1091,7 +1120,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(dict == null ? '新增戰術編號' : '編輯戰術編號'),
+          title: Text(dict == null ? '新增$categoryLabel' : '編輯$categoryLabel'),
           content: Form(
             key: formKey,
             child: Column(
@@ -1169,6 +1198,306 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               child: const Text('儲存'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // ==========================================
+  // 4. 【配件定義管理】分頁與對話框
+  // ==========================================
+
+  Widget _buildAccessoryDefTab() {
+    return StreamBuilder<List<AccessoryDef>>(
+      stream: widget.repository.getAccessoryDefsStream(),
+      builder: (context, snapshot) {
+        final defs = snapshot.data ?? [];
+        
+        defs.sort((a, b) {
+          if (a.isActive && !b.isActive) return -1;
+          if (!a.isActive && b.isActive) return 1;
+          return b.createdAt.compareTo(a.createdAt);
+        });
+
+        return Scaffold(
+          floatingActionButton: FloatingActionButton.extended(
+            heroTag: 'add_accessory_def_fab',
+            onPressed: () => _showAccessoryDefDialog(),
+            icon: const Icon(Icons.add),
+            label: const Text('新增配件'),
+          ),
+          body: () {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('載入失敗: ${snapshot.error}'));
+            }
+            if (defs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.category_outlined, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    const Text('尚無配件定義資料，請點擊下方按鈕新增', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAccessoryDefDialog(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('新增配件'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // 將配件依據機型進行分組
+            final groupedDefs = <String, List<AccessoryDef>>{};
+            for (final def in defs) {
+              groupedDefs.putIfAbsent(def.aircraftModelName, () => []).add(def);
+            }
+
+            final sortedKeys = groupedDefs.keys.toList()..sort();
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: sortedKeys.length,
+              itemBuilder: (context, index) {
+                final modelName = sortedKeys[index];
+                final modelDefs = groupedDefs[modelName]!;
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 16, bottom: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.flight, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            modelName,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...modelDefs.map((def) => Card.outlined(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: def.isActive 
+                              ? Theme.of(context).colorScheme.primaryContainer 
+                              : Colors.grey.shade200,
+                          child: Icon(
+                            Icons.category, 
+                            color: def.isActive 
+                                ? Theme.of(context).colorScheme.onPrimaryContainer 
+                                : Colors.grey,
+                          ),
+                        ),
+                        title: Text(
+                          def.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Switch(
+                              value: def.isActive,
+                              activeThumbColor: Theme.of(context).colorScheme.primary,
+                              onChanged: (value) async {
+                                final updatedDef = def.copyWith(isActive: value);
+                                await widget.repository.updateAccessoryDef(updatedDef);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('配件「${def.name}」已${value ? '啟用' : '停用'}'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                              tooltip: '刪除配件',
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Row(
+                                      children: [
+                                        Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                                        SizedBox(width: 8),
+                                        Text('確認永久刪除'),
+                                      ],
+                                    ),
+                                    content: Text('確定要永久刪除配件「${def.name}」嗎？'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('取消'),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.redAccent,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('確定刪除'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  await widget.repository.deleteAccessoryDef(def.documentId);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('配件「${def.name}」已永久刪除')),
+                                  );
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => _showAccessoryDefDialog(def: def),
+                              tooltip: '編輯配件',
+                            ),
+                          ],
+                        ),
+                      ),
+                    )).toList(),
+                  ],
+                );
+              },
+            );
+          }(),
+        );
+      },
+    );
+  }
+
+  void _showAccessoryDefDialog({AccessoryDef? def}) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: def?.name);
+    String? selectedModel = def?.aircraftModelName;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(def == null ? '新增配件定義' : '編輯配件定義'),
+              content: StreamBuilder<List<AircraftModel>>(
+                stream: widget.repository.getActiveAircraftModelsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+                  }
+                  final models = snapshot.data ?? [];
+                  if (models.isEmpty) {
+                    return const SizedBox(
+                      width: 400,
+                      child: Text('目前沒有任何啟用的出廠機型，請先至「機型管理」新增。', style: TextStyle(color: Colors.red)),
+                    );
+                  }
+
+                  if (selectedModel == null && models.isNotEmpty) {
+                    selectedModel = models.first.name;
+                  }
+
+                  return Form(
+                    key: formKey,
+                    child: SizedBox(
+                      width: 400,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: selectedModel,
+                            decoration: const InputDecoration(
+                              labelText: '專屬出廠機型',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: models.map((m) {
+                              return DropdownMenuItem<String>(
+                                value: m.name,
+                                child: Text(m.name),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setDialogState(() {
+                                selectedModel = val;
+                              });
+                            },
+                            validator: (val) => val == null ? '請選擇機型' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: nameController,
+                            decoration: const InputDecoration(
+                              labelText: '配件名稱',
+                              hintText: '如 螺旋槳、充電管家',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (val) => val == null || val.trim().isEmpty ? '請輸入配件名稱' : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      final name = nameController.text.trim();
+                      
+                      if (def == null) {
+                        final newDef = AccessoryDef(
+                          documentId: 'ACC-${DateTime.now().millisecondsSinceEpoch}',
+                          name: name,
+                          aircraftModelName: selectedModel!,
+                          createdAt: DateTime.now(),
+                          isActive: true,
+                        );
+                        await widget.repository.addAccessoryDef(newDef);
+                      } else {
+                        final updatedDef = def.copyWith(
+                          name: name,
+                          aircraftModelName: selectedModel!,
+                        );
+                        await widget.repository.updateAccessoryDef(updatedDef);
+                      }
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('配件「$name」儲存成功')),
+                      );
+                    }
+                  },
+                  child: const Text('儲存'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

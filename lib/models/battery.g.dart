@@ -16,7 +16,7 @@ _Battery _$BatteryFromJson(Map<String, dynamic> json) => _Battery(
       : DateTime.parse(json['purchaseDate'] as String),
   cycleCount: (json['cycleCount'] as num).toInt(),
   healthStatus: json['healthStatus'] as String,
-  currentDroneSn: json['currentDroneSn'] as String?,
+  currentPackageId: json['currentPackageId'] as String?,
 );
 
 Map<String, dynamic> _$BatteryToJson(_Battery instance) => <String, dynamic>{
@@ -27,5 +27,5 @@ Map<String, dynamic> _$BatteryToJson(_Battery instance) => <String, dynamic>{
   'purchaseDate': instance.purchaseDate?.toIso8601String(),
   'cycleCount': instance.cycleCount,
   'healthStatus': instance.healthStatus,
-  'currentDroneSn': instance.currentDroneSn,
+  'currentPackageId': instance.currentPackageId,
 };

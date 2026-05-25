@@ -17,9 +17,9 @@ mixin _$RemoteController {
 
 /// 遙控器序號 (作為 Document ID)
  String get documentId;/// 遙控器類型
- String get rcType;/// 目前配對機身序號
- String? get currentPairedDroneSn;/// 目前保管人
- String get currentKeeper;
+ String get rcType;/// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+ String? get currentPackageId;/// 遙控器狀態 (如 正常、維修中、已報廢/遺失)
+ String get status;
 /// Create a copy of RemoteController
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +32,16 @@ $RemoteControllerCopyWith<RemoteController> get copyWith => _$RemoteControllerCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RemoteController&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.rcType, rcType) || other.rcType == rcType)&&(identical(other.currentPairedDroneSn, currentPairedDroneSn) || other.currentPairedDroneSn == currentPairedDroneSn)&&(identical(other.currentKeeper, currentKeeper) || other.currentKeeper == currentKeeper));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RemoteController&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.rcType, rcType) || other.rcType == rcType)&&(identical(other.currentPackageId, currentPackageId) || other.currentPackageId == currentPackageId)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,rcType,currentPairedDroneSn,currentKeeper);
+int get hashCode => Object.hash(runtimeType,documentId,rcType,currentPackageId,status);
 
 @override
 String toString() {
-  return 'RemoteController(documentId: $documentId, rcType: $rcType, currentPairedDroneSn: $currentPairedDroneSn, currentKeeper: $currentKeeper)';
+  return 'RemoteController(documentId: $documentId, rcType: $rcType, currentPackageId: $currentPackageId, status: $status)';
 }
 
 
@@ -52,7 +52,7 @@ abstract mixin class $RemoteControllerCopyWith<$Res>  {
   factory $RemoteControllerCopyWith(RemoteController value, $Res Function(RemoteController) _then) = _$RemoteControllerCopyWithImpl;
 @useResult
 $Res call({
- String documentId, String rcType, String? currentPairedDroneSn, String currentKeeper
+ String documentId, String rcType, String? currentPackageId, String status
 });
 
 
@@ -69,12 +69,12 @@ class _$RemoteControllerCopyWithImpl<$Res>
 
 /// Create a copy of RemoteController
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? rcType = null,Object? currentPairedDroneSn = freezed,Object? currentKeeper = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? rcType = null,Object? currentPackageId = freezed,Object? status = null,}) {
   return _then(_self.copyWith(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,rcType: null == rcType ? _self.rcType : rcType // ignore: cast_nullable_to_non_nullable
-as String,currentPairedDroneSn: freezed == currentPairedDroneSn ? _self.currentPairedDroneSn : currentPairedDroneSn // ignore: cast_nullable_to_non_nullable
-as String?,currentKeeper: null == currentKeeper ? _self.currentKeeper : currentKeeper // ignore: cast_nullable_to_non_nullable
+as String,currentPackageId: freezed == currentPackageId ? _self.currentPackageId : currentPackageId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -160,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String rcType,  String? currentPairedDroneSn,  String currentKeeper)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String rcType,  String? currentPackageId,  String status)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RemoteController() when $default != null:
-return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.currentKeeper);case _:
+return $default(_that.documentId,_that.rcType,_that.currentPackageId,_that.status);case _:
   return orElse();
 
 }
@@ -181,10 +181,10 @@ return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String rcType,  String? currentPairedDroneSn,  String currentKeeper)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String rcType,  String? currentPackageId,  String status)  $default,) {final _that = this;
 switch (_that) {
 case _RemoteController():
-return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.currentKeeper);case _:
+return $default(_that.documentId,_that.rcType,_that.currentPackageId,_that.status);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +201,10 @@ return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String rcType,  String? currentPairedDroneSn,  String currentKeeper)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String rcType,  String? currentPackageId,  String status)?  $default,) {final _that = this;
 switch (_that) {
 case _RemoteController() when $default != null:
-return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.currentKeeper);case _:
+return $default(_that.documentId,_that.rcType,_that.currentPackageId,_that.status);case _:
   return null;
 
 }
@@ -216,17 +216,17 @@ return $default(_that.documentId,_that.rcType,_that.currentPairedDroneSn,_that.c
 @JsonSerializable()
 
 class _RemoteController implements RemoteController {
-  const _RemoteController({required this.documentId, required this.rcType, this.currentPairedDroneSn, required this.currentKeeper});
+  const _RemoteController({required this.documentId, required this.rcType, this.currentPackageId, this.status = '正常'});
   factory _RemoteController.fromJson(Map<String, dynamic> json) => _$RemoteControllerFromJson(json);
 
 /// 遙控器序號 (作為 Document ID)
 @override final  String documentId;
 /// 遙控器類型
 @override final  String rcType;
-/// 目前配對機身序號
-@override final  String? currentPairedDroneSn;
-/// 目前保管人
-@override final  String currentKeeper;
+/// 目前綁定的套裝 ID (可為 null，代表在庫存中)
+@override final  String? currentPackageId;
+/// 遙控器狀態 (如 正常、維修中、已報廢/遺失)
+@override@JsonKey() final  String status;
 
 /// Create a copy of RemoteController
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RemoteController&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.rcType, rcType) || other.rcType == rcType)&&(identical(other.currentPairedDroneSn, currentPairedDroneSn) || other.currentPairedDroneSn == currentPairedDroneSn)&&(identical(other.currentKeeper, currentKeeper) || other.currentKeeper == currentKeeper));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RemoteController&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.rcType, rcType) || other.rcType == rcType)&&(identical(other.currentPackageId, currentPackageId) || other.currentPackageId == currentPackageId)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,rcType,currentPairedDroneSn,currentKeeper);
+int get hashCode => Object.hash(runtimeType,documentId,rcType,currentPackageId,status);
 
 @override
 String toString() {
-  return 'RemoteController(documentId: $documentId, rcType: $rcType, currentPairedDroneSn: $currentPairedDroneSn, currentKeeper: $currentKeeper)';
+  return 'RemoteController(documentId: $documentId, rcType: $rcType, currentPackageId: $currentPackageId, status: $status)';
 }
 
 
@@ -261,7 +261,7 @@ abstract mixin class _$RemoteControllerCopyWith<$Res> implements $RemoteControll
   factory _$RemoteControllerCopyWith(_RemoteController value, $Res Function(_RemoteController) _then) = __$RemoteControllerCopyWithImpl;
 @override @useResult
 $Res call({
- String documentId, String rcType, String? currentPairedDroneSn, String currentKeeper
+ String documentId, String rcType, String? currentPackageId, String status
 });
 
 
@@ -278,12 +278,12 @@ class __$RemoteControllerCopyWithImpl<$Res>
 
 /// Create a copy of RemoteController
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? rcType = null,Object? currentPairedDroneSn = freezed,Object? currentKeeper = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? rcType = null,Object? currentPackageId = freezed,Object? status = null,}) {
   return _then(_RemoteController(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,rcType: null == rcType ? _self.rcType : rcType // ignore: cast_nullable_to_non_nullable
-as String,currentPairedDroneSn: freezed == currentPairedDroneSn ? _self.currentPairedDroneSn : currentPairedDroneSn // ignore: cast_nullable_to_non_nullable
-as String?,currentKeeper: null == currentKeeper ? _self.currentKeeper : currentKeeper // ignore: cast_nullable_to_non_nullable
+as String,currentPackageId: freezed == currentPackageId ? _self.currentPackageId : currentPackageId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
