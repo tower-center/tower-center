@@ -97,6 +97,7 @@ class FleetRepository {
   /// 若遙控器不存在則自動建立，並將 currentPackageId 指向當前套裝
   Future<void> pairRemoteController({
     required String rcSn,
+    String? serialNumber,
     required String packageId,
   }) async {
     final docRef = _firestore.collection('remote_controllers').doc(rcSn);
@@ -109,6 +110,7 @@ class FleetRepository {
     } else {
       final newRc = RemoteController(
         documentId: rcSn,
+        serialNumber: serialNumber,
         rcType: '標準版遙控器',
         currentPackageId: packageId,
       );

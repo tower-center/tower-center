@@ -81,17 +81,27 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('綁定實體飛機'),
+        title: const Text('新增飛機'),
         content: Form(
           key: formKey,
-          child: TextFormField(
-            controller: snController,
-            decoration: InputDecoration(
-              labelText: '機身序號 (S/N)',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('機型：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('編號：${_currentPackage.tacticalName}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: snController,
+                decoration: InputDecoration(
+                  labelText: '機身序號 (S/N) [可選]',
               suffixIcon: IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: scanSn),
-              border: const OutlineInputBorder(),
-            ),
-            validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+                  border: const OutlineInputBorder(),
+                ),
+                // validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -99,16 +109,24 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final sn = snController.text.trim();
+              final inputSn = snController.text.trim();
               Navigator.pop(context);
               setState(() => _isActionLoading = true);
 
               try {
                 // 檢查是否已存在
-                var drone = await widget.repository.getDrone(sn);
+                final generatedId = 'DRN-${DateTime.now().millisecondsSinceEpoch}';
+                final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
+                
+                Drone? drone;
+                if (inputSn.isNotEmpty) {
+                  drone = await widget.repository.getDrone(inputSn);
+                }
+
                 if (drone == null) {
                   drone = Drone(
-                    documentId: sn,
+                    documentId: documentId,
+                    serialNumber: inputSn.isNotEmpty ? inputSn : null,
                     modelType: _currentPackage.modelType,
                     currentPackageId: _currentPackage.documentId,
                     status: '正常',
@@ -120,7 +138,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                 }
 
                 // 更新 Package
-                final updatedPkg = _currentPackage.copyWith(currentDroneSn: sn);
+                final updatedPkg = _currentPackage.copyWith(currentDroneSn: documentId);
                 await widget.repository.updatePackage(updatedPkg);
 
                 // 紀錄
@@ -129,8 +147,8 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                   timestamp: DateTime.now(),
                   eventType: 'repair',
                   packageId: _currentPackage.documentId,
-                  droneSn: sn,
-                  description: '將實體飛機 (S/N: $sn) 放入套裝。',
+                  droneSn: documentId,
+                  description: '將實體飛機 (ID: $documentId) 放入套裝。',
                 ));
 
                 await _refreshPackage();
@@ -140,7 +158,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                 if (mounted) setState(() => _isActionLoading = false);
               }
             },
-            child: const Text('綁定'),
+            child: const Text('新增'),
           ),
         ],
       ),
@@ -210,17 +228,27 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('配對遙控器'),
+        title: const Text('新增遙控器'),
         content: Form(
           key: formKey,
-          child: TextFormField(
-            controller: rcController,
-            decoration: InputDecoration(
-              labelText: '遙控器序號 (S/N)',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('機型：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('編號：${_currentPackage.tacticalName}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: rcController,
+                decoration: InputDecoration(
+                  labelText: '遙控器序號 (S/N) [可選]',
               suffixIcon: IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: scanRcSn),
-              border: const OutlineInputBorder(),
-            ),
-            validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+                  border: const OutlineInputBorder(),
+                ),
+                // validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -228,13 +256,20 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final rcSn = rcController.text.trim();
+              final inputSn = rcController.text.trim();
               Navigator.pop(context);
               setState(() => _isActionLoading = true);
 
               try {
-                await widget.repository.pairRemoteController(rcSn: rcSn, packageId: _currentPackage.documentId);
-                final updatedPkg = _currentPackage.copyWith(currentRcSn: rcSn);
+                final generatedId = 'RC-${DateTime.now().millisecondsSinceEpoch}';
+                final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
+
+                await widget.repository.pairRemoteController(
+                  rcSn: documentId,
+                  serialNumber: inputSn.isNotEmpty ? inputSn : null,
+                  packageId: _currentPackage.documentId,
+                );
+                final updatedPkg = _currentPackage.copyWith(currentRcSn: documentId);
                 await widget.repository.updatePackage(updatedPkg);
 
                 await widget.repository.addActionLog(ActionLog(
@@ -242,8 +277,8 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                   timestamp: DateTime.now(),
                   eventType: 'battery_transfer',
                   packageId: _currentPackage.documentId,
-                  rcSn: rcSn,
-                  description: '手動將遙控器 (S/N: $rcSn) 放進套裝。',
+                  rcSn: documentId,
+                  description: '手動將遙控器 (ID: $documentId) 放進套裝。',
                 ));
                 await _refreshPackage();
               } catch (e) {
@@ -252,7 +287,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                 if (mounted) setState(() => _isActionLoading = false);
               }
             },
-            child: const Text('配對'),
+            child: const Text('新增'),
           ),
         ],
       ),
@@ -459,7 +494,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           ElevatedButton.icon(
                             onPressed: _isActionLoading ? null : _showBindDroneDialog,
                             icon: const Icon(Icons.add),
-                            label: const Text('放入飛機'),
+                            label: const Text('新增飛機'),
                           )
                         else
                           OutlinedButton.icon(
@@ -495,7 +530,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           ElevatedButton.icon(
                             onPressed: _isActionLoading ? null : _showBindRcDialog,
                             icon: const Icon(Icons.add),
-                            label: const Text('放入遙控器'),
+                            label: const Text('新增遙控器'),
                           )
                         else
                           OutlinedButton.icon(

@@ -8,6 +8,7 @@ part of 'drone.dart';
 
 _Drone _$DroneFromJson(Map<String, dynamic> json) => _Drone(
   documentId: json['documentId'] as String,
+  serialNumber: json['serialNumber'] as String?,
   modelType: json['modelType'] as String,
   currentPackageId: json['currentPackageId'] as String?,
   status: json['status'] as String? ?? '正常',
@@ -18,6 +19,7 @@ _Drone _$DroneFromJson(Map<String, dynamic> json) => _Drone(
 
 Map<String, dynamic> _$DroneToJson(_Drone instance) => <String, dynamic>{
   'documentId': instance.documentId,
+  'serialNumber': instance.serialNumber,
   'modelType': instance.modelType,
   'currentPackageId': instance.currentPackageId,
   'status': instance.status,

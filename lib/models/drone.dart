@@ -7,8 +7,11 @@ part 'drone.g.dart';
 @freezed
 abstract class Drone with _$Drone {
   const factory Drone({
-    /// 機身序號 (作為 Document ID)
+    /// 機身序號 (作為 Document ID，若無序號則使用隨機 ID)
     required String documentId,
+    
+    /// 實際機身出廠序號 (可選)
+    String? serialNumber,
     
     /// 出廠機型
     required String modelType,

@@ -7,8 +7,11 @@ part 'remote_controller.g.dart';
 @freezed
 abstract class RemoteController with _$RemoteController {
   const factory RemoteController({
-    /// 遙控器序號 (作為 Document ID)
+    /// 遙控器系統 ID (作為 Document ID)
     required String documentId,
+    
+    /// 實際遙控器序號 (可選)
+    String? serialNumber,
     
     /// 遙控器類型
     required String rcType,

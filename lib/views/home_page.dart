@@ -47,7 +47,7 @@ class _HomePageState extends State<HomePage> {
                     NavigationRailDestination(
                       icon: Icon(Icons.inventory_2_outlined),
                       selectedIcon: Icon(Icons.inventory_2),
-                      label: Text('套裝總表'),
+                      label: Text('空拍便攜盒總表'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.battery_charging_full_outlined),
@@ -179,7 +179,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ==========================================
-  // 【套裝總表】Sliver 渲染邏輯
+  // 【空拍便攜盒總表】Sliver 渲染邏輯
   // ==========================================
   Widget _buildPackageList(bool isMobile) {
     return StreamBuilder<List<DronePackage>>(

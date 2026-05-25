@@ -102,9 +102,11 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
 
     try {
       if (_isNewBattery) {
+        final String generatedId = 'BTY-${DateTime.now().millisecondsSinceEpoch}';
+        final String inputSn = _snController.text.trim();
         final newBattery = Battery(
-          documentId: 'BTY-${DateTime.now().millisecondsSinceEpoch}',
-          serialNumber: _snController.text.trim(),
+          documentId: inputSn.isNotEmpty ? inputSn : generatedId,
+          serialNumber: inputSn.isNotEmpty ? inputSn : null,
           tagName: _tagController.text.trim(),
           batteryModel: _selectedModel ?? '未知電池型號',
           cycleCount: 0,
@@ -194,11 +196,11 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
                       TextFormField(
                         controller: _snController,
                         decoration: InputDecoration(
-                          labelText: '出廠序號 (S/N)',
+                          labelText: '出廠序號 (S/N) [可選]',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: _scanBatterySn),
                         ),
-                        validator: (v) => v == null || v.trim().isEmpty ? '必填' : null,
+                        // validator: (v) => v == null || v.trim().isEmpty ? '必填' : null,
                       ),
                       const SizedBox(height: 12),
                       _isFetchingModels 
