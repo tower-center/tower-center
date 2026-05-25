@@ -76,7 +76,7 @@ class _HomePageState extends State<HomePage> {
                         slivers: [
                           // M3 風格的頂部導航大標題
                           SliverAppBar.large(
-                            title: const Text('極光機隊管理系統 $appVersion'),
+                            title: const Text('空拍機隊管理系統 $appVersion'),
                             actions: [
                               IconButton(
                                 icon: const Icon(Icons.notifications_outlined),

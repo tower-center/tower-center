@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '極光機隊管理系統',
+      title: '空拍機隊管理系統',
       debugShowCheckedModeBanner: false,
       // 使用 Material 3 機隊深/淺色主題
       theme: ThemeData(

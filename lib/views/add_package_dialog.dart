@@ -207,16 +207,16 @@ class _AddPackageDialogState extends State<AddPackageDialog> {
                     ),
                   )
                 else ...[
-                  // 1. 戰術編號
+                  // 1. 飛機編號
                   _activeTacticalNames.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.only(bottom: 16),
-                          child: Text('❌ 無啟用的戰術編號', style: TextStyle(color: Colors.red, fontSize: 13)),
+                          child: Text('❌ 無啟用的飛機編號', style: TextStyle(color: Colors.red, fontSize: 13)),
                         )
                       : DropdownButtonFormField<String>(
                           value: _selectedTacticalName,
                           decoration: const InputDecoration(
-                            labelText: '戰術編號',
+                            labelText: '飛機編號',
                             prefixIcon: Icon(Icons.label_important_outline),
                             border: OutlineInputBorder(),
                           ),
@@ -231,7 +231,7 @@ class _AddPackageDialogState extends State<AddPackageDialog> {
                               _selectedTacticalName = val;
                             });
                           },
-                          validator: (val) => val == null ? '請選擇戰術編號' : null,
+                          validator: (val) => val == null ? '請選擇飛機編號' : null,
                         ),
                   const SizedBox(height: 16),
                   

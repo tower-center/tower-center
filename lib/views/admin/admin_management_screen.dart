@@ -5,7 +5,7 @@ import '../../models/drone_operator.dart';
 import '../../models/system_dictionary.dart';
 import '../../repositories/admin_repository.dart';
 
-/// 極光後台管理面板 - 整合機型、空拍手與編號字典的動態 CRUD & 啟用狀態切換
+/// 空拍後台管理面板 - 整合機型、空拍手與編號字典的動態 CRUD & 啟用狀態切換
 class AdminManagementScreen extends StatefulWidget {
   final AdminRepository repository;
 
@@ -42,7 +42,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           children: [
             Icon(Icons.admin_panel_settings_outlined),
             SizedBox(width: 8),
-            Text('極光系統後台管理'),
+            Text('空拍系統後台管理'),
           ],
         ),
         bottom: TabBar(
@@ -1036,7 +1036,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('戰術編號「${dict.label}」已${value ? '啟用' : '停用'}'),
+                                    content: Text('$categoryLabel「${dict.label}」已${value ? '啟用' : '停用'}'),
                                     duration: const Duration(seconds: 1),
                                   ),
                                 );
@@ -1128,9 +1128,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               children: [
                 TextFormField(
                   controller: labelController,
-                  decoration: const InputDecoration(
-                    labelText: '戰術編號顯示名稱',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: '$categoryLabel顯示名稱',
+                    border: const OutlineInputBorder(),
                     hintText: '如 雷霆-05',
                   ),
                   onChanged: (val) {
@@ -1192,7 +1192,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                 if (!context.mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('戰術編號「$label」儲存成功')),
+                  SnackBar(content: Text('$categoryLabel「$label」儲存成功')),
                 );
               },
               child: const Text('儲存'),
@@ -1267,26 +1267,26 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                 final modelName = sortedKeys[index];
                 final modelDefs = groupedDefs[modelName]!;
                 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8, top: 16, bottom: 12),
-                      child: Row(
-                        children: [
-                          Icon(Icons.flight, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            modelName,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                return Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    initiallyExpanded: false,
+                    title: Row(
+                      children: [
+                        Icon(Icons.flight, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          modelName,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    ...modelDefs.map((def) => Card.outlined(
+                    children: [
+                      const SizedBox(height: 8),
+                      ...modelDefs.map((def) => Card.outlined(
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ListTile(
@@ -1376,7 +1376,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         ),
                       ),
                     )).toList(),
-                  ],
+                    ],
+                  ),
                 );
               },
             );
