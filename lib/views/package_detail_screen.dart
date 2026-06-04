@@ -8,6 +8,7 @@ import '../models/remote_controller.dart';
 import '../repositories/fleet_repository.dart';
 import 'add_package_dialog.dart';
 import 'add_battery_dialog.dart';
+import 'scanner_dialog.dart';
 
 /// 套裝 (Package) 管理面板 - 資源調度的核心視圖
 class PackageDetailScreen extends StatefulWidget {
@@ -75,11 +76,15 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     String? selectedDroneId;
 
     void scanSn(StateSetter setDialogState) async {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相機啟動中，請對準機身二維碼...')));
-      await Future.delayed(const Duration(seconds: 1));
-      setDialogState(() {
-        snController.text = 'SN-${DateTime.now().millisecondsSinceEpoch}';
-      });
+      final scannedCode = await showDialog<String>(
+        context: context,
+        builder: (context) => const ScannerDialog(),
+      );
+      if (scannedCode != null && scannedCode.isNotEmpty) {
+        setDialogState(() {
+          snController.text = scannedCode;
+        });
+      }
     }
 
     showDialog(
@@ -319,11 +324,15 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     String? selectedRcId;
 
     void scanRcSn(StateSetter setDialogState) async {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相機啟動中...')));
-      await Future.delayed(const Duration(seconds: 1));
-      setDialogState(() {
-        rcController.text = 'RC-${DateTime.now().millisecondsSinceEpoch}';
-      });
+      final scannedCode = await showDialog<String>(
+        context: context,
+        builder: (context) => const ScannerDialog(),
+      );
+      if (scannedCode != null && scannedCode.isNotEmpty) {
+        setDialogState(() {
+          rcController.text = scannedCode;
+        });
+      }
     }
 
     showDialog(

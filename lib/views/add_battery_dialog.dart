@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/battery.dart';
 import '../models/system_dictionary.dart';
 import '../repositories/fleet_repository.dart';
+import 'scanner_dialog.dart';
 
 class AddBatteryToPackageDialog extends StatefulWidget {
   final FleetRepository repository;
@@ -67,9 +68,15 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
   }
 
   void _scanBatterySn() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相機啟動中...')));
-    await Future.delayed(const Duration(seconds: 1));
-    _snController.text = 'BTY-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+    final scannedCode = await showDialog<String>(
+      context: context,
+      builder: (context) => const ScannerDialog(),
+    );
+    if (scannedCode != null && scannedCode.isNotEmpty) {
+      setState(() {
+        _snController.text = scannedCode;
+      });
+    }
   }
 
   Future<void> _submit() async {
