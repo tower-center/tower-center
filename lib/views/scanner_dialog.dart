@@ -227,32 +227,52 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
                   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
                   var codeReader = new ZXing.BrowserMultiFormatReader(hints);
                   
+                  // 輔助解碼函式，確保圖片在 onload 後再透過 decodeFromImageElement 解碼
+                  function decodeHelper(targetDataUrl) {
+                    return new Promise(function(resolveHelper, rejectHelper) {
+                      var decodeImg = new Image();
+                      decodeImg.onload = function() {
+                        codeReader.decodeFromImageElement(decodeImg)
+                          .then(function(res) {
+                            resolveHelper(res.text || res.getText());
+                          })
+                          .catch(function(err) {
+                            rejectHelper(err);
+                          });
+                      };
+                      decodeImg.onerror = function() {
+                        rejectHelper("圖片載入失敗");
+                      };
+                      decodeImg.src = targetDataUrl;
+                    });
+                  }
+                  
                   // 步驟一：嘗試 800 像素縮圖（降噪與速度最優，適合絕大多數手機相簿照片）
                   var scale800 = getScaledDataUrl(img, 800);
-                  codeReader.decodeFromImage(undefined, scale800)
-                    .then(function(res) {
-                      resolve(res.text || res.getText());
+                  decodeHelper(scale800)
+                    .then(function(resText) {
+                      resolve(resText);
                     })
                     .catch(function(err800) {
                       console.log("[Decoder] 800px 解析失敗，嘗試 1200px...", err800);
                       
                       // 步驟二：嘗試 1200 像素縮圖（適合較為精細的二維碼）
                       var scale1200 = getScaledDataUrl(img, 1200);
-                      codeReader.decodeFromImage(undefined, scale1200)
-                        .then(function(res) {
-                          resolve(res.text || res.getText());
+                      decodeHelper(scale1200)
+                        .then(function(resText) {
+                          resolve(resText);
                         })
                         .catch(function(err1200) {
                           console.log("[Decoder] 1200px 解析失敗，嘗試原圖解析...", err1200);
                           
                           // 步驟三：嘗試原圖解析
-                          codeReader.decodeFromImage(undefined, dataUrl)
-                            .then(function(res) {
-                              resolve(res.text || res.getText());
+                          decodeHelper(dataUrl)
+                            .then(function(resText) {
+                              resolve(resText);
                             })
                             .catch(function(errOrig) {
                               console.error("[Decoder] 所有尺寸解析皆失敗: ", errOrig);
-                              reject("無法解析圖片中的 QR Code。請確保條碼清晰、沒有陰影遮擋，並對準焦距拍一張近照。");
+                              reject("無法解析圖片中的二維條碼。請確保條碼清晰、沒有陰影反光遮擋。");
                             });
                         });
                     });
