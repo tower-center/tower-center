@@ -217,7 +217,14 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
                     return canvas.toDataURL('image/jpeg', 0.85);
                   }
 
-                  var codeReader = new ZXing.BrowserQRCodeReader();
+                  // 使用 BrowserMultiFormatReader 並指定可能格式，使其支援 QR_CODE 與 DATA_MATRIX
+                  var hints = new Map();
+                  var formats = [
+                    ZXing.BarcodeFormat.QR_CODE,
+                    ZXing.BarcodeFormat.DATA_MATRIX
+                  ];
+                  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+                  var codeReader = new ZXing.BrowserMultiFormatReader(hints);
                   
                   // 步驟一：嘗試 800 像素縮圖（降噪與速度最優，適合絕大多數手機相簿照片）
                   var scale800 = getScaledDataUrl(img, 800);
