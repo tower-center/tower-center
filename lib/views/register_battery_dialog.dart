@@ -22,8 +22,10 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
   final _snController = TextEditingController();
   
   List<SystemDictionary> _activeBatteryModels = [];
+  List<String> _globalCustomFields = [];
   bool _isFetchingModels = true;
   String? _selectedModel;
+  final Map<String, TextEditingController> _customControllers = {};
   
   bool _isLoading = false;
 
@@ -31,6 +33,16 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
   void initState() {
     super.initState();
     _loadBatteryModels();
+  }
+
+  @override
+  void dispose() {
+    _tagController.dispose();
+    _snController.dispose();
+    for (final c in _customControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadBatteryModels() async {
@@ -43,9 +55,22 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
       
       final models = snap.docs.map((doc) => SystemDictionary.fromJson(doc.data())).toList();
       models.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final fieldSnap = await FirebaseFirestore.instance
+          .collection('system_dictionaries')
+          .where('category', isEqualTo: 'battery_custom_field')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      final fields = fieldSnap.docs.map((doc) => SystemDictionary.fromJson(doc.data()).label).toList();
+      
+      for (final f in fields) {
+        _customControllers[f] = TextEditingController();
+      }
       
       setState(() {
         _activeBatteryModels = models;
+        _globalCustomFields = fields;
         if (models.isNotEmpty) _selectedModel = models.first.label;
         _isFetchingModels = false;
       });
@@ -68,6 +93,15 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
     try {
       final String generatedId = 'BTY-${DateTime.now().millisecondsSinceEpoch}';
       final String inputSn = _snController.text.trim();
+
+      final Map<String, String> customFields = {};
+      _customControllers.forEach((key, controller) {
+        final val = controller.text.trim();
+        if (val.isNotEmpty) {
+          customFields[key] = val;
+        }
+      });
+
       final newBattery = Battery(
         documentId: inputSn.isNotEmpty ? inputSn : generatedId,
         serialNumber: inputSn.isNotEmpty ? inputSn : null,
@@ -77,6 +111,7 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
         healthStatus: '全新健康 (無膨脹)',
         currentPackageId: null, // 未分配給任何套裝
         purchaseDate: DateTime.now(),
+        customFields: customFields,
       );
       
       await widget.repository.addBattery(newBattery);
@@ -143,6 +178,30 @@ class _RegisterBatteryDialogState extends State<RegisterBatteryDialog> {
                         onChanged: (val) => setState(() => _selectedModel = val),
                         validator: (val) => val == null ? '請選擇電池型號' : null,
                       ),
+                if (_globalCustomFields.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '✨ 電池全域自訂屬性',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueAccent),
+                    ),
+                  ),
+                  const Divider(height: 16),
+                  ..._globalCustomFields.map((field) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TextFormField(
+                        controller: _customControllers[field],
+                        decoration: InputDecoration(
+                          labelText: field,
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ],
             ),
           ),

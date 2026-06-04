@@ -35,6 +35,12 @@ abstract class Battery with _$Battery {
     
     /// 目前配置套裝 ID (可為 null，代表在庫存中)
     String? currentPackageId,
+
+    /// 自訂欄位
+    @Default({}) Map<String, String> customFields,
+
+    /// 是否已軟刪除
+    @Default(false) bool isDeleted,
   }) = _Battery;
 
   factory Battery.fromJson(Map<String, dynamic> json) => _$BatteryFromJson(json);

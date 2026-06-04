@@ -19,7 +19,8 @@ mixin _$DroneOperator {
  String get documentId;/// 空拍手姓名
  String get name;/// 聯絡電話
  String get phone;/// 證照號碼
- String get licenseNumber;/// 建立時間 (用於最新優先排序)
+ String get licenseNumber;/// 證照效期/換證提醒日期
+ DateTime? get licenseExpiryDate;/// 建立時間 (用於最新優先排序)
  DateTime get createdAt;/// 是否啟用
  bool get isActive;/// 自訂擴充欄位 (Key: 欄位名稱, Value: 欄位內容)
  Map<String, String> get customFields;
@@ -35,16 +36,16 @@ $DroneOperatorCopyWith<DroneOperator> get copyWith => _$DroneOperatorCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DroneOperator&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.licenseNumber, licenseNumber) || other.licenseNumber == licenseNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.customFields, customFields));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DroneOperator&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.licenseNumber, licenseNumber) || other.licenseNumber == licenseNumber)&&(identical(other.licenseExpiryDate, licenseExpiryDate) || other.licenseExpiryDate == licenseExpiryDate)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.customFields, customFields));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,name,phone,licenseNumber,createdAt,isActive,const DeepCollectionEquality().hash(customFields));
+int get hashCode => Object.hash(runtimeType,documentId,name,phone,licenseNumber,licenseExpiryDate,createdAt,isActive,const DeepCollectionEquality().hash(customFields));
 
 @override
 String toString() {
-  return 'DroneOperator(documentId: $documentId, name: $name, phone: $phone, licenseNumber: $licenseNumber, createdAt: $createdAt, isActive: $isActive, customFields: $customFields)';
+  return 'DroneOperator(documentId: $documentId, name: $name, phone: $phone, licenseNumber: $licenseNumber, licenseExpiryDate: $licenseExpiryDate, createdAt: $createdAt, isActive: $isActive, customFields: $customFields)';
 }
 
 
@@ -55,7 +56,7 @@ abstract mixin class $DroneOperatorCopyWith<$Res>  {
   factory $DroneOperatorCopyWith(DroneOperator value, $Res Function(DroneOperator) _then) = _$DroneOperatorCopyWithImpl;
 @useResult
 $Res call({
- String documentId, String name, String phone, String licenseNumber, DateTime createdAt, bool isActive, Map<String, String> customFields
+ String documentId, String name, String phone, String licenseNumber, DateTime? licenseExpiryDate, DateTime createdAt, bool isActive, Map<String, String> customFields
 });
 
 
@@ -72,13 +73,14 @@ class _$DroneOperatorCopyWithImpl<$Res>
 
 /// Create a copy of DroneOperator
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? name = null,Object? phone = null,Object? licenseNumber = null,Object? createdAt = null,Object? isActive = null,Object? customFields = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? documentId = null,Object? name = null,Object? phone = null,Object? licenseNumber = null,Object? licenseExpiryDate = freezed,Object? createdAt = null,Object? isActive = null,Object? customFields = null,}) {
   return _then(_self.copyWith(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,licenseNumber: null == licenseNumber ? _self.licenseNumber : licenseNumber // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,licenseExpiryDate: freezed == licenseExpiryDate ? _self.licenseExpiryDate : licenseExpiryDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,customFields: null == customFields ? _self.customFields : customFields // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
@@ -166,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime? licenseExpiryDate,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DroneOperator() when $default != null:
-return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.createdAt,_that.isActive,_that.customFields);case _:
+return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.licenseExpiryDate,_that.createdAt,_that.isActive,_that.customFields);case _:
   return orElse();
 
 }
@@ -187,10 +189,10 @@ return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime? licenseExpiryDate,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)  $default,) {final _that = this;
 switch (_that) {
 case _DroneOperator():
-return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.createdAt,_that.isActive,_that.customFields);case _:
+return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.licenseExpiryDate,_that.createdAt,_that.isActive,_that.customFields);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +209,10 @@ return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String documentId,  String name,  String phone,  String licenseNumber,  DateTime? licenseExpiryDate,  DateTime createdAt,  bool isActive,  Map<String, String> customFields)?  $default,) {final _that = this;
 switch (_that) {
 case _DroneOperator() when $default != null:
-return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.createdAt,_that.isActive,_that.customFields);case _:
+return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_that.licenseExpiryDate,_that.createdAt,_that.isActive,_that.customFields);case _:
   return null;
 
 }
@@ -222,7 +224,7 @@ return $default(_that.documentId,_that.name,_that.phone,_that.licenseNumber,_tha
 @JsonSerializable()
 
 class _DroneOperator implements DroneOperator {
-  const _DroneOperator({required this.documentId, required this.name, required this.phone, required this.licenseNumber, required this.createdAt, this.isActive = true, final  Map<String, String> customFields = const {}}): _customFields = customFields;
+  const _DroneOperator({required this.documentId, required this.name, required this.phone, required this.licenseNumber, this.licenseExpiryDate, required this.createdAt, this.isActive = true, final  Map<String, String> customFields = const {}}): _customFields = customFields;
   factory _DroneOperator.fromJson(Map<String, dynamic> json) => _$DroneOperatorFromJson(json);
 
 /// 文件 ID (如隨機產生的 UUID)
@@ -233,6 +235,8 @@ class _DroneOperator implements DroneOperator {
 @override final  String phone;
 /// 證照號碼
 @override final  String licenseNumber;
+/// 證照效期/換證提醒日期
+@override final  DateTime? licenseExpiryDate;
 /// 建立時間 (用於最新優先排序)
 @override final  DateTime createdAt;
 /// 是否啟用
@@ -260,16 +264,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DroneOperator&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.licenseNumber, licenseNumber) || other.licenseNumber == licenseNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._customFields, _customFields));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DroneOperator&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.licenseNumber, licenseNumber) || other.licenseNumber == licenseNumber)&&(identical(other.licenseExpiryDate, licenseExpiryDate) || other.licenseExpiryDate == licenseExpiryDate)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._customFields, _customFields));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,documentId,name,phone,licenseNumber,createdAt,isActive,const DeepCollectionEquality().hash(_customFields));
+int get hashCode => Object.hash(runtimeType,documentId,name,phone,licenseNumber,licenseExpiryDate,createdAt,isActive,const DeepCollectionEquality().hash(_customFields));
 
 @override
 String toString() {
-  return 'DroneOperator(documentId: $documentId, name: $name, phone: $phone, licenseNumber: $licenseNumber, createdAt: $createdAt, isActive: $isActive, customFields: $customFields)';
+  return 'DroneOperator(documentId: $documentId, name: $name, phone: $phone, licenseNumber: $licenseNumber, licenseExpiryDate: $licenseExpiryDate, createdAt: $createdAt, isActive: $isActive, customFields: $customFields)';
 }
 
 
@@ -280,7 +284,7 @@ abstract mixin class _$DroneOperatorCopyWith<$Res> implements $DroneOperatorCopy
   factory _$DroneOperatorCopyWith(_DroneOperator value, $Res Function(_DroneOperator) _then) = __$DroneOperatorCopyWithImpl;
 @override @useResult
 $Res call({
- String documentId, String name, String phone, String licenseNumber, DateTime createdAt, bool isActive, Map<String, String> customFields
+ String documentId, String name, String phone, String licenseNumber, DateTime? licenseExpiryDate, DateTime createdAt, bool isActive, Map<String, String> customFields
 });
 
 
@@ -297,13 +301,14 @@ class __$DroneOperatorCopyWithImpl<$Res>
 
 /// Create a copy of DroneOperator
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? name = null,Object? phone = null,Object? licenseNumber = null,Object? createdAt = null,Object? isActive = null,Object? customFields = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? documentId = null,Object? name = null,Object? phone = null,Object? licenseNumber = null,Object? licenseExpiryDate = freezed,Object? createdAt = null,Object? isActive = null,Object? customFields = null,}) {
   return _then(_DroneOperator(
 documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,licenseNumber: null == licenseNumber ? _self.licenseNumber : licenseNumber // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,licenseExpiryDate: freezed == licenseExpiryDate ? _self.licenseExpiryDate : licenseExpiryDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,customFields: null == customFields ? _self._customFields : customFields // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,

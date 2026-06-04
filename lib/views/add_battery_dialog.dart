@@ -7,11 +7,13 @@ import '../repositories/fleet_repository.dart';
 class AddBatteryToPackageDialog extends StatefulWidget {
   final FleetRepository repository;
   final String packageId;
+  final String packageModelType;
 
   const AddBatteryToPackageDialog({
     super.key,
     required this.repository,
     required this.packageId,
+    required this.packageModelType,
   });
 
   @override
@@ -31,47 +33,26 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
   final _tagController = TextEditingController();
   final _snController = TextEditingController();
   
-  List<SystemDictionary> _activeBatteryModels = [];
-  bool _isFetchingModels = true;
-  String? _selectedModel;
+  // _loadBatteryModels removed as model is fixed to packageModelType
 
   @override
   void initState() {
     super.initState();
     _fetchUnassignedBatteries();
-    _loadBatteryModels();
-  }
-
-  Future<void> _loadBatteryModels() async {
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('system_dictionaries')
-          .where('category', isEqualTo: 'battery_model')
-          .where('isActive', isEqualTo: true)
-          .get();
-      
-      final models = snap.docs.map((doc) => SystemDictionary.fromJson(doc.data())).toList();
-      models.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      setState(() {
-        _activeBatteryModels = models;
-        if (models.isNotEmpty) _selectedModel = models.first.label;
-        _isFetchingModels = false;
-      });
-    } catch (e) {
-      setState(() => _isFetchingModels = false);
-    }
   }
 
   Future<void> _fetchUnassignedBatteries() async {
     try {
       final batteries = await widget.repository.getUnassignedBatteries();
+      // Filter batteries by the package's model type
+      final compatibleBatteries = batteries.where((b) => b.batteryModel == widget.packageModelType).toList();
+      
       if (mounted) {
         setState(() {
-          _unassignedBatteries = batteries;
+          _unassignedBatteries = compatibleBatteries;
           _isFetching = false;
-          if (batteries.isNotEmpty) {
-            _selectedBattery = batteries.first;
+          if (compatibleBatteries.isNotEmpty) {
+            _selectedBattery = compatibleBatteries.first;
           } else {
             _isNewBattery = true; // Force new battery mode if no unassigned batteries
           }
@@ -108,7 +89,7 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
           documentId: inputSn.isNotEmpty ? inputSn : generatedId,
           serialNumber: inputSn.isNotEmpty ? inputSn : null,
           tagName: _tagController.text.trim(),
-          batteryModel: _selectedModel ?? '未知電池型號',
+          batteryModel: widget.packageModelType,
           cycleCount: 0,
           healthStatus: '全新健康 (無膨脹)',
           currentPackageId: widget.packageId,
@@ -203,22 +184,13 @@ class _AddBatteryToPackageDialogState extends State<AddBatteryToPackageDialog> {
                         // validator: (v) => v == null || v.trim().isEmpty ? '必填' : null,
                       ),
                       const SizedBox(height: 12),
-                      _isFetchingModels 
-                        ? const CircularProgressIndicator()
-                        : _activeBatteryModels.isEmpty
-                          ? const Text('❌ 無啟用的電池型號字典', style: TextStyle(color: Colors.red))
-                          : DropdownButtonFormField<String>(
-                              value: _selectedModel,
-                              decoration: const InputDecoration(labelText: '電池型號', border: OutlineInputBorder()),
-                              items: _activeBatteryModels.map((m) {
-                                return DropdownMenuItem(
-                                  value: m.label,
-                                  child: Text(m.label),
-                                );
-                              }).toList(),
-                              onChanged: (val) => setState(() => _selectedModel = val),
-                              validator: (val) => val == null ? '請選擇電池型號' : null,
-                            ),
+                      Row(
+                        children: [
+                          Icon(Icons.flight, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text('綁定電池型號：${widget.packageModelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ],
                   ),
                 ),

@@ -15,6 +15,12 @@ _Drone _$DroneFromJson(Map<String, dynamic> json) => _Drone(
   insuranceExpiry: json['insuranceExpiry'] == null
       ? null
       : DateTime.parse(json['insuranceExpiry'] as String),
+  customFields:
+      (json['customFields'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+  isDeleted: json['isDeleted'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$DroneToJson(_Drone instance) => <String, dynamic>{
@@ -24,4 +30,6 @@ Map<String, dynamic> _$DroneToJson(_Drone instance) => <String, dynamic>{
   'currentPackageId': instance.currentPackageId,
   'status': instance.status,
   'insuranceExpiry': instance.insuranceExpiry?.toIso8601String(),
+  'customFields': instance.customFields,
+  'isDeleted': instance.isDeleted,
 };

@@ -21,6 +21,12 @@ abstract class RemoteController with _$RemoteController {
     
     /// 遙控器狀態 (如 正常、維修中、已報廢/遺失)
     @Default('正常') String status,
+
+    /// 自訂欄位
+    @Default({}) Map<String, String> customFields,
+
+    /// 是否已軟刪除
+    @Default(false) bool isDeleted,
   }) = _RemoteController;
 
   factory RemoteController.fromJson(Map<String, dynamic> json) => _$RemoteControllerFromJson(json);

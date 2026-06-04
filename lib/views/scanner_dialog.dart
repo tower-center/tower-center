@@ -54,6 +54,8 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
       detectionSpeed: DetectionSpeed.normal,
       facing: CameraFacing.back,
       autoStart: false,
+      autoZoom: true,
+      formats: const [BarcodeFormat.qrCode],
     );
 
     // 掃描線上下滑動動畫
@@ -160,6 +162,8 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
         detectionSpeed: DetectionSpeed.normal,
         facing: CameraFacing.back,
         autoStart: false,
+        autoZoom: true,
+        formats: const [BarcodeFormat.qrCode],
       );
     });
 

@@ -24,6 +24,12 @@ abstract class Drone with _$Drone {
     
     /// 保險/註冊到期日
     DateTime? insuranceExpiry,
+
+    /// 自訂欄位
+    @Default({}) Map<String, String> customFields,
+
+    /// 是否已軟刪除
+    @Default(false) bool isDeleted,
   }) = _Drone;
 
   factory Drone.fromJson(Map<String, dynamic> json) => _$DroneFromJson(json);

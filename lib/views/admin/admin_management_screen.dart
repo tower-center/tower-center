@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/accessory_def.dart';
 import '../../models/aircraft_model.dart';
 import '../../models/drone_operator.dart';
 import '../../models/system_dictionary.dart';
 import '../../repositories/admin_repository.dart';
+import '../operator_detail_screen.dart';
+import '../../repositories/fleet_repository.dart';
 
 /// 空拍後台管理面板 - 整合機型、空拍手與編號字典的動態 CRUD & 啟用狀態切換
 class AdminManagementScreen extends StatefulWidget {
@@ -42,9 +45,68 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           children: [
             Icon(Icons.admin_panel_settings_outlined),
             SizedBox(width: 8),
-            Text('空拍系統後台管理'),
+            Expanded(
+              child: Text(
+                '空拍系統後台管理',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
+        actions: [
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance.collection('settings').doc('app').snapshots(),
+            builder: (context, snapshot) {
+              final data = snapshot.data?.data() as Map<String, dynamic>?;
+              final currentSize = data?['fontSize'] ?? 'medium';
+              
+              String sizeLabel = '中';
+              if (currentSize == 'small') sizeLabel = '小';
+              if (currentSize == 'large') sizeLabel = '大';
+              if (currentSize == 'extraLarge') sizeLabel = '特大';
+
+              return PopupMenuButton<String>(
+                icon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.format_size, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '字體: $sizeLabel',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                tooltip: '設定字體大小',
+                onSelected: (String value) async {
+                  await FirebaseFirestore.instance.collection('settings').doc('app').set(
+                    {'fontSize': value},
+                    SetOptions(merge: true),
+                  );
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'small',
+                    child: Text('小 (Small)'),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'medium',
+                    child: Text('中 (Medium)'),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'large',
+                    child: Text('大 (Large)'),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'extraLarge',
+                    child: Text('特大 (Extra Large)'),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.tab,
@@ -78,6 +140,66 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
         ],
       ),
     );
+  }
+
+  Widget _buildResponsiveCard({
+    required BuildContext context,
+    required Widget leading,
+    required Widget title,
+    required Widget subtitle,
+    required List<Widget> actions,
+    VoidCallback? onTap,
+  }) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    if (!isMobile) {
+      return ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: leading,
+        title: title,
+        subtitle: subtitle,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: actions,
+        ),
+      );
+    } else {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  leading,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        title,
+                        const SizedBox(height: 4),
+                        subtitle,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: actions,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   // ==========================================
@@ -124,28 +246,22 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                   children: [
                     Icon(Icons.flight_outlined, size: 64, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('尚無機型資料，請點擊下方按鈕新增', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAircraftModelDialog(globalExistingKeys: globalExistingKeys),
-                      icon: const Icon(Icons.add),
-                      label: const Text('新增出廠機型'),
-                    ),
+                    const Text('尚無機型資料，請點擊右下角按鈕新增', style: TextStyle(color: Colors.grey)),
                   ],
                 ),
               );
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
               itemCount: models.length,
               itemBuilder: (context, index) {
                 final model = models[index];
                 return Card.outlined(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: _buildResponsiveCard(
+                    context: context,
                     leading: CircleAvatar(
                       backgroundColor: model.isActive 
                           ? Theme.of(context).colorScheme.primaryContainer 
@@ -194,77 +310,74 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         ],
                       ),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 啟用 / 停用 切換開關
-                        Switch(
-                          value: model.isActive,
-                          activeThumbColor: Theme.of(context).colorScheme.primary,
-                          onChanged: (value) async {
-                            final updatedModel = model.copyWith(isActive: value);
-                            await widget.repository.updateAircraftModel(updatedModel);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('機型「${model.name}」已${value ? '啟用' : '停用'}'),
-                                duration: const Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        // 刪除按鈕 (物理刪除)
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                          tooltip: '刪除機型',
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Row(
-                                  children: [
-                                    Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                                    SizedBox(width: 8),
-                                    Text('確認永久刪除'),
-                                  ],
-                                ),
-                                content: Text('確定要永久刪除機型「${model.name}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
-                                    child: const Text('取消'),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () => Navigator.pop(context, true),
-                                    child: const Text('確定刪除'),
-                                  ),
+                    actions: [
+                      // 啟用 / 停用 切換開關
+                      Switch(
+                        value: model.isActive,
+                        activeThumbColor: Theme.of(context).colorScheme.primary,
+                        onChanged: (value) async {
+                          final updatedModel = model.copyWith(isActive: value);
+                          await widget.repository.updateAircraftModel(updatedModel);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('機型「${model.name}」已${value ? '啟用' : '停用'}'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // 刪除按鈕 (物理刪除)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        tooltip: '刪除機型',
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                                  SizedBox(width: 8),
+                                  Text('確認永久刪除'),
                                 ],
                               ),
-                            );
+                              content: Text('確定要永久刪除機型「${model.name}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('取消'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('確定刪除'),
+                                ),
+                              ],
+                            ),
+                          );
 
-                            if (confirm == true) {
-                              await widget.repository.deleteAircraftModel(model.documentId);
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('機型「${model.name}」已永久刪除')),
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        // 編輯按鈕
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => _showAircraftModelDialog(model: model),
-                          tooltip: '編輯機型',
-                        ),
-                      ],
-                    ),
+                          if (confirm == true) {
+                            await widget.repository.deleteAircraftModel(model.documentId);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('機型「${model.name}」已永久刪除')),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      // 編輯按鈕
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => _showAircraftModelDialog(model: model),
+                        tooltip: '編輯機型',
+                      ),
+                    ],
                   ),
                 );
               },
@@ -312,8 +425,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               title: Text(model == null ? '新增出廠機型' : '編輯出廠機型'),
               content: Form(
                 key: formKey,
-                child: SizedBox(
-                  width: 500,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 500),
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -501,16 +614,10 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           return b.createdAt.compareTo(a.createdAt);
         });
 
-        // 搜集目前所有空拍手的自訂欄位 Key 清單
-        final Set<String> globalExistingKeys = {};
-        for (final op in operators) {
-          globalExistingKeys.addAll(op.customFields.keys);
-        }
-
         return Scaffold(
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'add_operator_fab',
-            onPressed: () => _showDroneOperatorDialog(globalExistingKeys: globalExistingKeys),
+            onPressed: () => _showDroneOperatorDialog(),
             icon: const Icon(Icons.add),
             label: const Text('新增空拍手'),
           ),
@@ -528,28 +635,34 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                   children: [
                     Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('尚無空拍手資料，請點擊下方按鈕新增', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => _showDroneOperatorDialog(globalExistingKeys: globalExistingKeys),
-                      icon: const Icon(Icons.add),
-                      label: const Text('新增空拍手'),
-                    ),
+                    const Text('尚無空拍手資料，請點擊右下角按鈕新增', style: TextStyle(color: Colors.grey)),
                   ],
                 ),
               );
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
               itemCount: operators.length,
               itemBuilder: (context, index) {
                 final operator = operators[index];
                 return Card.outlined(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: _buildResponsiveCard(
+                    context: context,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OperatorDetailScreen(
+                            operatorId: operator.documentId,
+                            adminRepository: widget.repository,
+                            fleetRepository: FleetRepository(),
+                          ),
+                        ),
+                      );
+                    },
                     leading: CircleAvatar(
                       backgroundColor: operator.isActive 
                           ? Theme.of(context).colorScheme.primaryContainer 
@@ -600,78 +713,74 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         ],
                       ),
                     ),
-                    isThreeLine: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 啟用 / 停用 切換開關
-                        Switch(
-                          value: operator.isActive,
-                          activeThumbColor: Theme.of(context).colorScheme.primary,
-                          onChanged: (value) async {
-                            final updatedOperator = operator.copyWith(isActive: value);
-                            await widget.repository.updateDroneOperator(updatedOperator);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('空拍手「${operator.name}」已${value ? '啟用' : '停用'}'),
-                                duration: const Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        // 刪除按鈕 (物理刪除)
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                          tooltip: '刪除空拍手',
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Row(
-                                  children: [
-                                    Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                                    SizedBox(width: 8),
-                                    Text('確認永久刪除'),
-                                  ],
-                                ),
-                                content: Text('確定要永久刪除空拍手「${operator.name}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
-                                    child: const Text('取消'),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () => Navigator.pop(context, true),
-                                    child: const Text('確定刪除'),
-                                  ),
+                    actions: [
+                      // 啟用 / 停用 切換開關
+                      Switch(
+                        value: operator.isActive,
+                        activeThumbColor: Theme.of(context).colorScheme.primary,
+                        onChanged: (value) async {
+                          final updatedOperator = operator.copyWith(isActive: value);
+                          await widget.repository.updateDroneOperator(updatedOperator);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('空拍手「${operator.name}」已${value ? '啟用' : '停用'}'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // 刪除按鈕 (物理刪除)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        tooltip: '刪除空拍手',
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                                  SizedBox(width: 8),
+                                  Text('確認永久刪除'),
                                 ],
                               ),
-                            );
+                              content: Text('確定要永久刪除空拍手「${operator.name}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('取消'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('確定刪除'),
+                                ),
+                              ],
+                            ),
+                          );
 
-                            if (confirm == true) {
-                              await widget.repository.deleteDroneOperator(operator.documentId);
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('空拍手「${operator.name}」已永久刪除')),
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        // 編輯按鈕
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => _showDroneOperatorDialog(operator: operator),
-                          tooltip: '編輯空拍手',
-                        ),
-                      ],
-                    ),
+                          if (confirm == true) {
+                            await widget.repository.deleteDroneOperator(operator.documentId);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('空拍手「${operator.name}」已永久刪除')),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      // 編輯按鈕
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => _showDroneOperatorDialog(operator: operator),
+                        tooltip: '編輯空拍手',
+                      ),
+                    ],
                   ),
                 );
               },
@@ -682,33 +791,35 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     );
   }
 
-  void _showDroneOperatorDialog({DroneOperator? operator, Set<String>? globalExistingKeys}) {
+  void _showDroneOperatorDialog({DroneOperator? operator}) async {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: operator?.name);
     final phoneController = TextEditingController(text: operator?.phone);
     final licenseController = TextEditingController(text: operator?.licenseNumber);
 
+    // 取得全域已啟用的空拍手自訂欄位
+    final activeDicts = await widget.repository.getActiveSystemDictionariesStream('operator_custom_field').first;
+    final List<String> globalKeys = activeDicts.map((d) => d.label).toList();
+
     // 暫存自訂欄位的 controllers
     final List<MapEntry<TextEditingController, TextEditingController>> customFieldsControllers = [];
+    
+    // 收集所有需要產生的欄位名稱 (保證全域設定的欄位一定出現在最前面)
+    final Set<String> allKeys = {};
+    allKeys.addAll(globalKeys);
     if (operator != null) {
-      // 編輯模式：只加載這筆資料自己的自訂欄位
-      if (operator.customFields.isNotEmpty) {
-        operator.customFields.forEach((key, value) {
-          customFieldsControllers.add(MapEntry(
-            TextEditingController(text: key),
-            TextEditingController(text: value),
-          ));
-        });
-      }
-    } else if (globalExistingKeys != null && globalExistingKeys.isNotEmpty) {
-      // 新增模式：預載全域記憶的所有 Keys，值留空
-      for (final key in globalExistingKeys) {
-        customFieldsControllers.add(MapEntry(
-          TextEditingController(text: key),
-          TextEditingController(),
-        ));
-      }
+      allKeys.addAll(operator.customFields.keys);
     }
+    
+    for (final key in allKeys) {
+      final value = operator?.customFields[key] ?? '';
+      customFieldsControllers.add(MapEntry(
+        TextEditingController(text: key),
+        TextEditingController(text: value),
+      ));
+    }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -720,8 +831,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               title: Text(operator == null ? '新增空拍手' : '編輯空拍手資料'),
               content: Form(
                 key: formKey,
-                child: SizedBox(
-                  width: 500,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 500),
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -768,18 +879,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                 fontSize: 16,
                               ),
                             ),
-                            TextButton.icon(
-                              onPressed: () {
-                                setDialogState(() {
-                                  customFieldsControllers.add(MapEntry(
-                                    TextEditingController(),
-                                    TextEditingController(),
-                                  ));
-                                });
-                              },
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('新增欄位'),
-                            ),
                           ],
                         ),
                         const Divider(),
@@ -787,7 +886,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
                             child: Text(
-                              '尚無自訂欄位，您可以點擊「新增欄位」自訂規格（如：居住地、血型等）',
+                              '系統目前無設定任何全域空拍手屬性。',
                               style: TextStyle(color: Colors.grey, fontSize: 13),
                             ),
                           ),
@@ -798,38 +897,28 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                             child: Row(
                               children: [
                                 Expanded(
-                                  flex: 4,
+                                  flex: 5,
                                   child: TextFormField(
                                     controller: entry.key,
+                                    enabled: false,
                                     decoration: const InputDecoration(
-                                      labelText: '欄位名稱',
-                                      hintText: '如 居住地',
+                                      labelText: '屬性名稱',
                                       border: OutlineInputBorder(),
                                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                     ),
-                                    validator: (val) => val == null || val.trim().isEmpty ? '名稱空白' : null,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                  flex: 5,
+                                  flex: 7,
                                   child: TextFormField(
                                     controller: entry.value,
                                     decoration: const InputDecoration(
                                       labelText: '內容值',
-                                      hintText: '如 台北市',
                                       border: OutlineInputBorder(),
                                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                     ),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                  onPressed: () {
-                                    setDialogState(() {
-                                      customFieldsControllers.removeAt(index);
-                                    });
-                                  },
                                 ),
                               ],
                             ),
@@ -906,9 +995,54 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   // 3. 【名稱設定】分頁與對話框
   // ==========================================
 
+  String _getCategoryLabel(String category) {
+    switch (category) {
+      case 'tactical_name': return '飛機編號';
+      case 'battery_model': return '電池型號';
+      case 'drone_custom_field': return '機身自訂屬性';
+      case 'rc_custom_field': return '遙控器自訂屬性';
+      case 'battery_custom_field': return '電池自訂屬性';
+      case 'operator_custom_field': return '空拍手自訂屬性';
+      default: return '設定項目';
+    }
+  }
+
+  String _getCategoryHint(String category) {
+    switch (category) {
+      case 'tactical_name':
+        return '此處管理的編號為前台登錄新母艦時使用的「飛機編號」下拉選項，最新建立之編號會優先顯示在選單最前方。';
+      case 'battery_model':
+        return '此處管理的型號為前台登錄新電池時使用的「電池型號」下拉選項，最新建立之型號會優先顯示在選單最前方。';
+      case 'drone_custom_field':
+        return '此處定義的全域欄位將自動套用至所有「空拍機/機身」。新增後，在詳細履歷中會自動呈現該屬性供填寫。';
+      case 'rc_custom_field':
+        return '此處定義的全域欄位將自動套用至所有「遙控器」。新增後，在詳細履歷中會自動呈現該屬性供填寫。';
+      case 'battery_custom_field':
+        return '此處定義的全域欄位將自動套用至所有「智能電池」。新增後，在登錄電池與履歷中會自動呈現該屬性供填寫。';
+      case 'operator_custom_field':
+        return '此處定義的全域欄位將自動套用至所有「空拍手」。新增後，在新增/編輯空拍手時會自動呈現該屬性供填寫。';
+      default:
+        return '';
+    }
+  }
+
+  List<String> _getFixedAttributes(String category) {
+    switch (category) {
+      case 'drone_custom_field':
+        return ['機身ID', '出廠序號 (S/N)', '出廠機型', '機身狀態', '保險到期日'];
+      case 'rc_custom_field':
+        return ['遙控器ID', '出廠序號 (S/N)', '遙控器類型', '遙控器狀態'];
+      case 'battery_custom_field':
+        return ['外場標籤', '出廠序號 (S/N)', '電池型號', '採購日期', '循環次數', '健康狀態'];
+      case 'operator_custom_field':
+        return ['空拍手姓名', '聯絡電話', '合格證照號碼'];
+      default:
+        return [];
+    }
+  }
+
   Widget _buildSystemDictionaryTab() {
-    final isTacticalName = _selectedDictCategory == 'tactical_name';
-    final categoryLabel = isTacticalName ? '飛機編號' : '電池型號';
+    final categoryLabel = _getCategoryLabel(_selectedDictCategory);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -926,17 +1060,24 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
             color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             child: Column(
               children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'tactical_name', label: Text('飛機編號設定')),
-                    ButtonSegment(value: 'battery_model', label: Text('電池型號設定')),
-                  ],
-                  selected: {_selectedDictCategory},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    setState(() {
-                      _selectedDictCategory = newSelection.first;
-                    });
-                  },
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'tactical_name', label: Text('飛機編號')),
+                      ButtonSegment(value: 'battery_model', label: Text('電池型號')),
+                      ButtonSegment(value: 'drone_custom_field', label: Text('機身屬性')),
+                      ButtonSegment(value: 'rc_custom_field', label: Text('遙控屬性')),
+                      ButtonSegment(value: 'battery_custom_field', label: Text('電池屬性')),
+                      ButtonSegment(value: 'operator_custom_field', label: Text('空拍手屬性')),
+                    ],
+                    selected: {_selectedDictCategory},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setState(() {
+                        _selectedDictCategory = newSelection.first;
+                      });
+                    },
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -945,14 +1086,94 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        isTacticalName 
-                          ? '此處管理的編號為前台登錄新母艦時使用的「飛機編號」下拉選項，最新建立之編號會優先顯示在選單最前方。'
-                          : '此處管理的型號為前台登錄新電池時使用的「電池型號」下拉選項，最新建立之型號會優先顯示在選單最前方。',
+                        _getCategoryHint(_selectedDictCategory),
                         style: const TextStyle(fontSize: 12, color: Colors.black87),
                       ),
                     ),
                   ],
                 ),
+                () {
+                  final fixedAttrs = _getFixedAttributes(_selectedDictCategory);
+                  if (fixedAttrs.isEmpty) return const SizedBox.shrink();
+                  final isMobile = MediaQuery.of(context).size.width < 600;
+                  
+                  if (isMobile) {
+                    return Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        const Divider(),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.push_pin_outlined, color: Colors.indigo.shade700, size: 18),
+                            const SizedBox(width: 6),
+                            const Text(
+                              '系統預設固定欄位 (不需重複新增)：',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: fixedAttrs.map((attr) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                attr,
+                                style: TextStyle(fontSize: 11, color: Colors.indigo.shade800, fontWeight: FontWeight.w500),
+                              ),
+                            )).toList(),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      const Divider(),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.push_pin_outlined, color: Colors.indigo.shade700, size: 18),
+                          const SizedBox(width: 6),
+                          const Text(
+                            '系統預設固定欄位 (不需重複新增)：',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                          ),
+                          Expanded(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: fixedAttrs.map((attr) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.indigo.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
+                                ),
+                                child: Text(
+                                  attr,
+                                  style: TextStyle(fontSize: 11, color: Colors.indigo.shade800, fontWeight: FontWeight.w500),
+                                ),
+                              )).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }(),
               ],
             ),
           ),
@@ -982,28 +1203,22 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       children: [
                         Icon(Icons.menu_book_outlined, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
-                        Text('尚無任何$categoryLabel，請點擊下方按鈕新增', style: const TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () => _showSystemDictionaryDialog(),
-                          icon: const Icon(Icons.add),
-                          label: Text('新增$categoryLabel'),
-                        ),
+                        Text('尚無任何$categoryLabel，請點擊右下角按鈕新增', style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
                   );
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final dict = list[index];
                     return Card.outlined(
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: _buildResponsiveCard(
+                        context: context,
                         leading: CircleAvatar(
                           backgroundColor: dict.isActive 
                               ? Theme.of(context).colorScheme.primaryContainer 
@@ -1023,77 +1238,74 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           padding: const EdgeInsets.only(top: 4),
                           child: Text('系統識別碼: ${dict.value}'),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // 啟用 / 停用 切換開關
-                            Switch(
-                              value: dict.isActive,
-                              activeThumbColor: Theme.of(context).colorScheme.primary,
-                              onChanged: (value) async {
-                                final updatedDict = dict.copyWith(isActive: value);
-                                await widget.repository.updateSystemDictionary(updatedDict);
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('$categoryLabel「${dict.label}」已${value ? '啟用' : '停用'}'),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            // 刪除按鈕 (物理刪除)
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                              tooltip: '刪除編號',
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Row(
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                                        SizedBox(width: 8),
-                                        Text('確認永久刪除'),
-                                      ],
-                                    ),
-                                    content: Text('確定要永久刪除$categoryLabel「${dict.label}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.redAccent,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        onPressed: () => Navigator.pop(context, true),
-                                        child: const Text('確定刪除'),
-                                      ),
+                        actions: [
+                          // 啟用 / 停用 切換開關
+                          Switch(
+                            value: dict.isActive,
+                            activeThumbColor: Theme.of(context).colorScheme.primary,
+                            onChanged: (value) async {
+                              final updatedDict = dict.copyWith(isActive: value);
+                              await widget.repository.updateSystemDictionary(updatedDict);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('$categoryLabel「${dict.label}」已${value ? '啟用' : '停用'}'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          // 刪除按鈕 (物理刪除)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            tooltip: '刪除編號',
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                                      SizedBox(width: 8),
+                                      Text('確認永久刪除'),
                                     ],
                                   ),
-                                );
+                                  content: Text('確定要永久刪除$categoryLabel「${dict.label}」嗎？\n此動作將從系統資料庫中完全抹除，且無法復原。'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('確定刪除'),
+                                    ),
+                                  ],
+                                ),
+                              );
 
-                                if (confirm == true) {
-                                  await widget.repository.deleteSystemDictionary(dict.documentId);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('$categoryLabel「${dict.label}」已永久刪除')),
-                                  );
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 4),
-                            // 編輯按鈕
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _showSystemDictionaryDialog(dict: dict),
-                              tooltip: '編輯編號',
-                            ),
-                          ],
-                        ),
+                              if (confirm == true) {
+                                await widget.repository.deleteSystemDictionary(dict.documentId);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('$categoryLabel「${dict.label}」已永久刪除')),
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          // 編輯按鈕
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _showSystemDictionaryDialog(dict: dict),
+                            tooltip: '編輯編號',
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -1107,7 +1319,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   }
 
   void _showSystemDictionaryDialog({SystemDictionary? dict}) {
-    final categoryLabel = _selectedDictCategory == 'tactical_name' ? '飛機編號' : '電池型號';
+    final categoryLabel = _getCategoryLabel(_selectedDictCategory);
     final formKey = GlobalKey<FormState>();
     final labelController = TextEditingController(text: dict?.label);
     final valueController = TextEditingController(text: dict?.value);
@@ -1240,19 +1452,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                   children: [
                     Icon(Icons.category_outlined, size: 64, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('尚無配件定義資料，請點擊下方按鈕新增', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAccessoryDefDialog(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('新增配件'),
-                    ),
+                    const Text('尚無配件定義資料，請點擊右下角按鈕新增', style: TextStyle(color: Colors.grey)),
                   ],
                 ),
               );
             }
 
-            // 將配件依據機型進行分組
             final groupedDefs = <String, List<AccessoryDef>>{};
             for (final def in defs) {
               groupedDefs.putIfAbsent(def.aircraftModelName, () => []).add(def);
@@ -1261,7 +1466,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
             final sortedKeys = groupedDefs.keys.toList()..sort();
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
               itemCount: sortedKeys.length,
               itemBuilder: (context, index) {
                 final modelName = sortedKeys[index];
@@ -1287,28 +1492,27 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                     children: [
                       const SizedBox(height: 8),
                       ...modelDefs.map((def) => Card.outlined(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: def.isActive 
-                              ? Theme.of(context).colorScheme.primaryContainer 
-                              : Colors.grey.shade200,
-                          child: Icon(
-                            Icons.category, 
-                            color: def.isActive 
-                                ? Theme.of(context).colorScheme.onPrimaryContainer 
-                                : Colors.grey,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: _buildResponsiveCard(
+                          context: context,
+                          leading: CircleAvatar(
+                            backgroundColor: def.isActive 
+                                ? Theme.of(context).colorScheme.primaryContainer 
+                                : Colors.grey.shade200,
+                            child: Icon(
+                              Icons.category, 
+                              color: def.isActive 
+                                  ? Theme.of(context).colorScheme.onPrimaryContainer 
+                                  : Colors.grey,
+                            ),
                           ),
-                        ),
-                        title: Text(
-                          def.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                          title: Text(
+                            def.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: const SizedBox.shrink(),
+                          actions: [
                             Switch(
                               value: def.isActive,
                               activeThumbColor: Theme.of(context).colorScheme.primary,
@@ -1331,29 +1535,34 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               onPressed: () async {
                                 final confirm = await showDialog<bool>(
                                   context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Row(
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                                        SizedBox(width: 8),
-                                        Text('確認永久刪除'),
-                                      ],
-                                    ),
-                                    content: Text('確定要永久刪除配件「${def.name}」嗎？'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.redAccent,
-                                          foregroundColor: Colors.white,
+                                  builder: (context) => Dialog(
+                                    child: Container(
+                                      constraints: const BoxConstraints(maxWidth: 400),
+                                      child: AlertDialog(
+                                        title: const Row(
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                                            SizedBox(width: 8),
+                                            Text('確認永久刪除'),
+                                          ],
                                         ),
-                                        onPressed: () => Navigator.pop(context, true),
-                                        child: const Text('確定刪除'),
+                                        content: Text('確定要永久刪除配件「${def.name}」嗎？'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('取消'),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.redAccent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: const Text('確定刪除'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 );
 
@@ -1374,8 +1583,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                             ),
                           ],
                         ),
-                      ),
-                    )).toList(),
+                      )),
                     ],
                   ),
                 );
@@ -1420,8 +1628,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
 
                   return Form(
                     key: formKey,
-                    child: SizedBox(
-                      width: 400,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [

@@ -18,6 +18,9 @@ abstract class DroneOperator with _$DroneOperator {
     
     /// 證照號碼
     required String licenseNumber,
+
+    /// 證照效期/換證提醒日期
+    DateTime? licenseExpiryDate,
     
     /// 建立時間 (用於最新優先排序)
     required DateTime createdAt,

@@ -17,6 +17,12 @@ _Battery _$BatteryFromJson(Map<String, dynamic> json) => _Battery(
   cycleCount: (json['cycleCount'] as num).toInt(),
   healthStatus: json['healthStatus'] as String,
   currentPackageId: json['currentPackageId'] as String?,
+  customFields:
+      (json['customFields'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+  isDeleted: json['isDeleted'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$BatteryToJson(_Battery instance) => <String, dynamic>{
@@ -28,4 +34,6 @@ Map<String, dynamic> _$BatteryToJson(_Battery instance) => <String, dynamic>{
   'cycleCount': instance.cycleCount,
   'healthStatus': instance.healthStatus,
   'currentPackageId': instance.currentPackageId,
+  'customFields': instance.customFields,
+  'isDeleted': instance.isDeleted,
 };

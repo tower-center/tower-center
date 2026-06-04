@@ -12,6 +12,9 @@ _DroneOperator _$DroneOperatorFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       phone: json['phone'] as String,
       licenseNumber: json['licenseNumber'] as String,
+      licenseExpiryDate: json['licenseExpiryDate'] == null
+          ? null
+          : DateTime.parse(json['licenseExpiryDate'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
       isActive: json['isActive'] as bool? ?? true,
       customFields:
@@ -27,6 +30,7 @@ Map<String, dynamic> _$DroneOperatorToJson(_DroneOperator instance) =>
       'name': instance.name,
       'phone': instance.phone,
       'licenseNumber': instance.licenseNumber,
+      'licenseExpiryDate': instance.licenseExpiryDate?.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),
       'isActive': instance.isActive,
       'customFields': instance.customFields,

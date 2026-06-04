@@ -71,96 +71,193 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   void _showBindDroneDialog() {
     final formKey = GlobalKey<FormState>();
     final snController = TextEditingController();
+    String activeMode = 'inventory'; // 'inventory' 或 'manual'
+    String? selectedDroneId;
 
-    void scanSn() async {
+    void scanSn(StateSetter setDialogState) async {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相機啟動中，請對準機身二維碼...')));
       await Future.delayed(const Duration(seconds: 1));
-      snController.text = 'SN-${DateTime.now().millisecondsSinceEpoch}';
+      setDialogState(() {
+        snController.text = 'SN-${DateTime.now().millisecondsSinceEpoch}';
+      });
     }
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('新增飛機'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('機型：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('編號：${_currentPackage.tacticalName}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: snController,
-                decoration: InputDecoration(
-                  labelText: '機身序號 (S/N) [可選]',
-              suffixIcon: IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: scanSn),
-                  border: const OutlineInputBorder(),
-                ),
-                // validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('放入飛機'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('限定機型：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  // M3 SegmentedButton 模式切換
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'inventory', label: Text('庫存挑選'), icon: Icon(Icons.warehouse_outlined)),
+                      ButtonSegment(value: 'manual', label: Text('手動登錄'), icon: Icon(Icons.edit_note)),
+                    ],
+                    selected: {activeMode},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setDialogState(() {
+                        activeMode = newSelection.first;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (activeMode == 'inventory') ...[
+                    // 庫存挑選模式
+                    StreamBuilder<List<Drone>>(
+                      stream: widget.repository.getUnassignedDronesStream(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()));
+                        }
+                        final allDrones = snapshot.data ?? [];
+                        // 篩選與當前便攜盒型號相同的空閒飛機
+                        final filteredDrones = allDrones.where((d) => d.modelType == _currentPackage.modelType).toList();
+
+                        if (filteredDrones.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              '⚠️ 目前無此型號的庫存飛機，請切換至「手動登錄」建立新飛機。',
+                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        }
+
+                        // 確保選中的 ID 仍在清單中
+                        if (selectedDroneId != null && !filteredDrones.any((d) => d.documentId == selectedDroneId)) {
+                          selectedDroneId = null;
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          value: selectedDroneId,
+                          decoration: const InputDecoration(
+                            labelText: '選擇庫存飛機',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: filteredDrones.map((d) {
+                            final snText = d.serialNumber != null ? ' (S/N: ${d.serialNumber})' : '';
+                            return DropdownMenuItem(
+                              value: d.documentId,
+                              child: Text('${d.documentId}$snText'),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            setDialogState(() {
+                              selectedDroneId = val;
+                            });
+                          },
+                          validator: (val) => val == null ? '請選擇一台飛機' : null,
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    // 手動登錄模式
+                    TextFormField(
+                      controller: snController,
+                      decoration: InputDecoration(
+                        labelText: '輸入/掃描飛機序號 (S/N) [可選]',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          onPressed: () => scanSn(setDialogState),
+                        ),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+              ElevatedButton(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  Navigator.pop(context);
+                  setState(() => _isActionLoading = true);
+
+                  try {
+                    if (activeMode == 'inventory') {
+                      // 庫存挑選綁定
+                      final droneId = selectedDroneId!;
+                      final drone = (await widget.repository.getDrone(droneId))!;
+                      
+                      // 1. 更新飛機關聯
+                      await widget.repository.updateDrone(drone.copyWith(
+                        currentPackageId: _currentPackage.documentId,
+                      ));
+
+                      // 2. 更新便攜盒關聯
+                      final updatedPkg = _currentPackage.copyWith(currentDroneSn: droneId);
+                      await widget.repository.updatePackage(updatedPkg);
+
+                      // 3. 記錄日誌
+                      await widget.repository.addActionLog(ActionLog(
+                        documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
+                        timestamp: DateTime.now(),
+                        eventType: 'repair',
+                        packageId: _currentPackage.documentId,
+                        droneSn: droneId,
+                        description: '從庫存中挑選並放入飛機 (ID: $droneId)。',
+                      ));
+                    } else {
+                      // 手動登錄新增
+                      final inputSn = snController.text.trim();
+                      final generatedId = 'DRN-${DateTime.now().millisecondsSinceEpoch}';
+                      final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
+
+                      Drone? drone;
+                      if (inputSn.isNotEmpty) {
+                        drone = await widget.repository.getDrone(inputSn);
+                      }
+
+                      if (drone == null) {
+                        drone = Drone(
+                          documentId: documentId,
+                          serialNumber: inputSn.isNotEmpty ? inputSn : null,
+                          modelType: _currentPackage.modelType,
+                          currentPackageId: _currentPackage.documentId,
+                          status: '正常',
+                        );
+                        await widget.repository.addDrone(drone);
+                      } else {
+                        drone = drone.copyWith(currentPackageId: _currentPackage.documentId, status: '正常');
+                        await widget.repository.updateDrone(drone);
+                      }
+
+                      final updatedPkg = _currentPackage.copyWith(currentDroneSn: documentId);
+                      await widget.repository.updatePackage(updatedPkg);
+
+                      await widget.repository.addActionLog(ActionLog(
+                        documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
+                        timestamp: DateTime.now(),
+                        eventType: 'repair',
+                        packageId: _currentPackage.documentId,
+                        droneSn: documentId,
+                        description: '手動登錄新飛機並放入便攜盒 (ID: $documentId)。',
+                      ));
+                    }
+
+                    await _refreshPackage();
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('綁定失敗: $e')));
+                  } finally {
+                    if (mounted) setState(() => _isActionLoading = false);
+                  }
+                },
+                child: const Text('確認'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final inputSn = snController.text.trim();
-              Navigator.pop(context);
-              setState(() => _isActionLoading = true);
-
-              try {
-                // 檢查是否已存在
-                final generatedId = 'DRN-${DateTime.now().millisecondsSinceEpoch}';
-                final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
-                
-                Drone? drone;
-                if (inputSn.isNotEmpty) {
-                  drone = await widget.repository.getDrone(inputSn);
-                }
-
-                if (drone == null) {
-                  drone = Drone(
-                    documentId: documentId,
-                    serialNumber: inputSn.isNotEmpty ? inputSn : null,
-                    modelType: _currentPackage.modelType,
-                    currentPackageId: _currentPackage.documentId,
-                    status: '正常',
-                  );
-                  await widget.repository.addDrone(drone);
-                } else {
-                  drone = drone.copyWith(currentPackageId: _currentPackage.documentId, status: '正常');
-                  await widget.repository.updateDrone(drone);
-                }
-
-                // 更新 Package
-                final updatedPkg = _currentPackage.copyWith(currentDroneSn: documentId);
-                await widget.repository.updatePackage(updatedPkg);
-
-                // 紀錄
-                await widget.repository.addActionLog(ActionLog(
-                  documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
-                  timestamp: DateTime.now(),
-                  eventType: 'repair',
-                  packageId: _currentPackage.documentId,
-                  droneSn: documentId,
-                  description: '將實體飛機 (ID: $documentId) 放入套裝。',
-                ));
-
-                await _refreshPackage();
-              } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('綁定失敗: $e')));
-              } finally {
-                if (mounted) setState(() => _isActionLoading = false);
-              }
-            },
-            child: const Text('新增'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -218,78 +315,179 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   void _showBindRcDialog() {
     final formKey = GlobalKey<FormState>();
     final rcController = TextEditingController();
+    String activeMode = 'inventory'; // 'inventory' 或 'manual'
+    String? selectedRcId;
 
-    void scanRcSn() async {
+    void scanRcSn(StateSetter setDialogState) async {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相機啟動中...')));
       await Future.delayed(const Duration(seconds: 1));
-      rcController.text = 'RC-${DateTime.now().millisecondsSinceEpoch}';
+      setDialogState(() {
+        rcController.text = 'RC-${DateTime.now().millisecondsSinceEpoch}';
+      });
     }
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('新增遙控器'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('機型：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('編號：${_currentPackage.tacticalName}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: rcController,
-                decoration: InputDecoration(
-                  labelText: '遙控器序號 (S/N) [可選]',
-              suffixIcon: IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: scanRcSn),
-                  border: const OutlineInputBorder(),
-                ),
-                // validator: (v) => v == null || v.trim().isEmpty ? '請輸入序號' : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('放入遙控器'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('限定型號：${_currentPackage.modelType}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  // M3 SegmentedButton 模式切換
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'inventory', label: Text('庫存挑選'), icon: Icon(Icons.warehouse_outlined)),
+                      ButtonSegment(value: 'manual', label: Text('手動登錄'), icon: Icon(Icons.edit_note)),
+                    ],
+                    selected: {activeMode},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setDialogState(() {
+                        activeMode = newSelection.first;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (activeMode == 'inventory') ...[
+                    // 庫存挑選模式
+                    StreamBuilder<List<RemoteController>>(
+                      stream: widget.repository.getUnassignedRemoteControllersStream(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()));
+                        }
+                        final allRcs = snapshot.data ?? [];
+                        // 篩選與當前便攜盒型號相同的空閒遙控器
+                        final filteredRcs = allRcs.where((rc) => rc.rcType == _currentPackage.modelType).toList();
+
+                        if (filteredRcs.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              '⚠️ 目前無此型號的庫存遙控器，請切換至「手動登錄」建立新遙控器。',
+                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        }
+
+                        // 確保選中的 ID 仍在清單中
+                        if (selectedRcId != null && !filteredRcs.any((rc) => rc.documentId == selectedRcId)) {
+                          selectedRcId = null;
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          value: selectedRcId,
+                          decoration: const InputDecoration(
+                            labelText: '選擇庫存遙控器',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: filteredRcs.map((rc) {
+                            final snText = rc.serialNumber != null ? ' (S/N: ${rc.serialNumber})' : '';
+                            return DropdownMenuItem(
+                              value: rc.documentId,
+                              child: Text('${rc.documentId}$snText'),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            setDialogState(() {
+                              selectedRcId = val;
+                            });
+                          },
+                          validator: (val) => val == null ? '請選擇一台遙控器' : null,
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    // 手動登錄模式
+                    TextFormField(
+                      controller: rcController,
+                      decoration: InputDecoration(
+                        labelText: '輸入/掃描遙控器序號 (S/N) [可選]',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          onPressed: () => scanRcSn(setDialogState),
+                        ),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+              ElevatedButton(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  Navigator.pop(context);
+                  setState(() => _isActionLoading = true);
+
+                  try {
+                    if (activeMode == 'inventory') {
+                      // 庫存挑選綁定
+                      final rcId = selectedRcId!;
+                      
+                      await widget.repository.pairRemoteController(
+                        rcSn: rcId,
+                        rcType: _currentPackage.modelType,
+                        packageId: _currentPackage.documentId,
+                      );
+
+                      final updatedPkg = _currentPackage.copyWith(currentRcSn: rcId);
+                      await widget.repository.updatePackage(updatedPkg);
+
+                      await widget.repository.addActionLog(ActionLog(
+                        documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
+                        timestamp: DateTime.now(),
+                        eventType: 'battery_transfer',
+                        packageId: _currentPackage.documentId,
+                        rcSn: rcId,
+                        description: '從庫存中挑選並放入遙控器 (ID: $rcId)。',
+                      ));
+                    } else {
+                      // 手動登錄新增
+                      final inputSn = rcController.text.trim();
+                      final generatedId = 'RC-${DateTime.now().millisecondsSinceEpoch}';
+                      final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
+
+                      await widget.repository.pairRemoteController(
+                        rcSn: documentId,
+                        serialNumber: inputSn.isNotEmpty ? inputSn : null,
+                        rcType: _currentPackage.modelType,
+                        packageId: _currentPackage.documentId,
+                      );
+
+                      final updatedPkg = _currentPackage.copyWith(currentRcSn: documentId);
+                      await widget.repository.updatePackage(updatedPkg);
+
+                      await widget.repository.addActionLog(ActionLog(
+                        documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
+                        timestamp: DateTime.now(),
+                        eventType: 'battery_transfer',
+                        packageId: _currentPackage.documentId,
+                        rcSn: documentId,
+                        description: '手動登錄新遙控器並放入便攜盒 (ID: $documentId)。',
+                      ));
+                    }
+
+                    await _refreshPackage();
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('配對失敗: $e')));
+                  } finally {
+                    if (mounted) setState(() => _isActionLoading = false);
+                  }
+                },
+                child: const Text('確認'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final inputSn = rcController.text.trim();
-              Navigator.pop(context);
-              setState(() => _isActionLoading = true);
-
-              try {
-                final generatedId = 'RC-${DateTime.now().millisecondsSinceEpoch}';
-                final documentId = inputSn.isNotEmpty ? inputSn : generatedId;
-
-                await widget.repository.pairRemoteController(
-                  rcSn: documentId,
-                  serialNumber: inputSn.isNotEmpty ? inputSn : null,
-                  packageId: _currentPackage.documentId,
-                );
-                final updatedPkg = _currentPackage.copyWith(currentRcSn: documentId);
-                await widget.repository.updatePackage(updatedPkg);
-
-                await widget.repository.addActionLog(ActionLog(
-                  documentId: 'LOG-${DateTime.now().millisecondsSinceEpoch}',
-                  timestamp: DateTime.now(),
-                  eventType: 'battery_transfer',
-                  packageId: _currentPackage.documentId,
-                  rcSn: documentId,
-                  description: '手動將遙控器 (ID: $documentId) 放進套裝。',
-                ));
-                await _refreshPackage();
-              } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('配對失敗: $e')));
-              } finally {
-                if (mounted) setState(() => _isActionLoading = false);
-              }
-            },
-            child: const Text('新增'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -346,6 +544,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
       builder: (context) => AddBatteryToPackageDialog(
         repository: widget.repository,
         packageId: _currentPackage.documentId,
+        packageModelType: _currentPackage.modelType,
       ),
     );
 
@@ -393,6 +592,57 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
         title: Text('${_currentPackage.tacticalName} 套裝管理面板'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: '刪除便攜盒',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('⚠️ 確定要刪除此便攜盒嗎？'),
+                  content: const Text('刪除後，此便攜盒內的所有設備（飛機、遙控器、電池）將會解除綁定並回歸庫存，供其他便攜盒使用。\n\n此動作無法復原！'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: const Text('取消'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(c, true),
+                      child: const Text('確認刪除'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && mounted) {
+                setState(() => _isActionLoading = true);
+                try {
+                  await widget.repository.deletePackage(_currentPackage.documentId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('便攜盒已成功刪除，所屬物資已回歸庫存！'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    Navigator.of(context).pop(); // 返回首頁
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('刪除失敗: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _isActionLoading = false);
+                }
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: '編輯套裝資料',
