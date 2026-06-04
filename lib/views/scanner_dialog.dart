@@ -224,6 +224,7 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
                     ZXing.BarcodeFormat.DATA_MATRIX
                   ];
                   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+                  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
                   var codeReader = new ZXing.BrowserMultiFormatReader(hints);
                   
                   // 步驟一：嘗試 800 像素縮圖（降噪與速度最優，適合絕大多數手機相簿照片）
