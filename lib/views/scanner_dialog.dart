@@ -190,20 +190,18 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
               img.onload = function() {
                 try {
                   // 輔育函數：將 HTMLImageElement 繪製到指定最大邊的 Canvas 中並導出 Data URL
-                  function getScaledDataUrl(imgObj, maxDimension) {
+                  function getScaledDataUrl(imgObj, maxDimension, applyFilters) {
                     var width = imgObj.width;
                     var height = imgObj.height;
                     
-                    if (width <= maxDimension && height <= maxDimension) {
-                      return dataUrl;
-                    }
-                    
-                    if (width > height) {
-                      height = Math.round((height * maxDimension) / width);
-                      width = maxDimension;
-                    } else {
-                      width = Math.round((width * maxDimension) / height);
-                      height = maxDimension;
+                    if (width > maxDimension || height > maxDimension) {
+                      if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                      } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                      }
                     }
                     
                     var canvas = document.createElement('canvas');
@@ -214,7 +212,43 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(imgObj, 0, 0, width, height);
-                    return canvas.toDataURL('image/jpeg', 0.85);
+                    
+                    if (applyFilters) {
+                      try {
+                        var imgData = ctx.getImageData(0, 0, width, height);
+                        var data = imgData.data;
+                        
+                        // 計算平均亮度
+                        var totalLuminance = 0;
+                        for (var i = 0; i < data.length; i += 4) {
+                          var r = data[i];
+                          var g = data[i+1];
+                          var b = data[i+2];
+                          var luma = r * 0.299 + g * 0.587 + b * 0.114;
+                          totalLuminance += luma;
+                        }
+                        var avgLuminance = totalLuminance / (data.length / 4);
+                        
+                        // 套用閥值進行黑白二值化（使用 avgLuminance * 0.9 加強黑色對比度）
+                        var threshold = avgLuminance * 0.9;
+                        for (var i = 0; i < data.length; i += 4) {
+                          var r = data[i];
+                          var g = data[i+1];
+                          var b = data[i+2];
+                          var luma = r * 0.299 + g * 0.587 + b * 0.114;
+                          
+                          var val = luma > threshold ? 255 : 0;
+                          data[i] = val;
+                          data[i+1] = val;
+                          data[i+2] = val;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                      } catch (canvasErr) {
+                        console.warn("[Decoder] Canvas filter error: ", canvasErr);
+                      }
+                    }
+                    
+                    return canvas.toDataURL('image/jpeg', 0.9);
                   }
 
                   // 使用 BrowserMultiFormatReader 並指定可能格式，使其支援 QR_CODE 與 DATA_MATRIX
@@ -247,32 +281,35 @@ class _ScannerDialogState extends State<ScannerDialog> with SingleTickerProvider
                     });
                   }
                   
-                  // 步驟一：嘗試 800 像素縮圖（降噪與速度最優，適合絕大多數手機相簿照片）
-                  var scale800 = getScaledDataUrl(img, 800);
-                  decodeHelper(scale800)
-                    .then(function(resText) {
-                      resolve(resText);
-                    })
-                    .catch(function(err800) {
-                      console.log("[Decoder] 800px 解析失敗，嘗試 1200px...", err800);
+                  // 步驟一：嘗試 800 像素高對比黑白圖（大幅消除反光）
+                  var scale800Filtered = getScaledDataUrl(img, 800, true);
+                  decodeHelper(scale800Filtered)
+                    .then(resolve)
+                    .catch(function(err800F) {
+                      console.log("[Decoder] 800px 高對比解析失敗，嘗試 1200px 高對比...", err800F);
                       
-                      // 步驟二：嘗試 1200 像素縮圖（適合較為精細的二維碼）
-                      var scale1200 = getScaledDataUrl(img, 1200);
-                      decodeHelper(scale1200)
-                        .then(function(resText) {
-                          resolve(resText);
-                        })
-                        .catch(function(err1200) {
-                          console.log("[Decoder] 1200px 解析失敗，嘗試原圖解析...", err1200);
+                      // 步驟二：嘗試 1200 像素高對比黑白圖
+                      var scale1200Filtered = getScaledDataUrl(img, 1200, true);
+                      decodeHelper(scale1200Filtered)
+                        .then(resolve)
+                        .catch(function(err1200F) {
+                          console.log("[Decoder] 1200px 高對比解析失敗，嘗試原圖高對比...", err1200F);
                           
-                          // 步驟三：嘗試原圖解析
-                          decodeHelper(dataUrl)
-                            .then(function(resText) {
-                              resolve(resText);
-                            })
-                            .catch(function(errOrig) {
-                              console.error("[Decoder] 所有尺寸解析皆失敗: ", errOrig);
-                              reject("無法解析圖片中的二維條碼。請確保條碼清晰、沒有陰影反光遮擋。");
+                          // 步驟三：嘗試原圖高對比
+                          var origFiltered = getScaledDataUrl(img, Math.max(img.width, img.height), true);
+                          decodeHelper(origFiltered)
+                            .then(resolve)
+                            .catch(function(errOrigF) {
+                              console.log("[Decoder] 原圖高對比解析失敗，嘗試 800px 原圖原色保底...", errOrigF);
+                              
+                              // 步驟四：使用 800 像素原圖原色保底
+                              var scale800Raw = getScaledDataUrl(img, 800, false);
+                              decodeHelper(scale800Raw)
+                                .then(resolve)
+                                .catch(function(err800Raw) {
+                                  console.error("[Decoder] 所有尺寸與過濾條件皆解析失敗: ", err800Raw);
+                                  reject("無法解析圖片中的二維條碼。請確保條碼清晰、沒有陰影反光遮擋。");
+                                });
                             });
                         });
                     });
